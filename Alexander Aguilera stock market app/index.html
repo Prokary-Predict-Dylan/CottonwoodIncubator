@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+="viewport" content="width=device-width, initial-scale=1.0">
+<title>Educational Stock Market App</title>
+<link rel="stylesheet" href="style.css">
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        transition: background-color 0.3s, color 0.3s;
+    }
+    .home-screen {
+        text-align: center;
+        padding: 20px;
+    }
+    .button-container {
+        margin-top: 20px;
+    }
+    .navigate-button {
+        margin: 5px;
+        padding: 10px 20px;
+        font-size: 16px;
+        cursor: pointer;
+    }
+    .section-container {
+        padding: 20px;
+    }
+    .section {
+        display: none;
+    }
+    .section h2 {
+        margin-bottom: 20px;
+    }
+    .section p {
+        margin-bottom: 10px;
+    }
+    .theme-switch-wrapper {
+        text-align: right;
+        padding: 10px;
+    }
+    .theme-switch {
+        position: relative;
+        display: inline-block;
+        width: 60px;
+        height: 34px;
+    }
+    .theme-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: .4s;
+        border-radius: 34px;
+    }
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 26px;
+        width: 26px;
+        left: 4px;
+        bottom: 4px;
+        background-color: white;
+        transition: .4s;
+        border-radius: 50%;
+    }
+    input:checked + .slider {
+        background-color: #2196F3;
+    }
+    input:checked + .slider:before {
+        transform: translateX(26px);
+    }
+    .slider.round {
+        border-radius: 34px;
+    }
+    .slider.round:before {
+        border-radius: 50%;
+    }
+    .popup {
+        display: none;
+        position: fixed;
+        z-index: 1;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.4);
+    }
+    .popup-content {
+        background-color: #fefefe;
+        margin: 15% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 80%;
+        max-width: 500px;
+        border-radius: 8px;
+    }
+    .close-popup {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+    .close-popup:hover,
+    .close-popup:focus {
+        color: black;
+        text-decoration: none;
+        cursor: pointer;
+    }
+    #game-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    #character {
+        margin-bottom: 20px;
+    }
+    #iphone-status {
+        margin-bottom: 20px;
+    }
+    #production-upgrades {
+        margin-bottom: 20px;
+    }
+    #stock-status {
+        margin-bottom: 20px;
+    }
+    #margin-status {
+        margin-bottom: 20px;
+    }
+    #time-limit {
+        margin-bottom: 20px;
+    }
+    #bonus-multiplier {
+        margin-bottom: 20px;
+    }
+    .question {
+        margin-bottom: 20px;
+    }
+    .term-definition {
+        margin-bottom: 20px;
+    }
+    .ai-mentor {
+        margin-bottom: 20px;
+    }
+    .flash-frenzy-clash {
+        margin-bottom: 20px;
+    }
+    .current-events {
+        margin-bottom: 20px;
+    }
+</style>
+</head>
+<body>
+<nav>
+    <div class="theme-switch-wrapper">
+        <label class="theme-switch" for="theme-checkbox">
+            <input type="checkbox" id="theme-checkbox">
+            <div class="slider round"></div>
+        </label>
+        <em>Switch Theme</em>
+    </div>
+</nav>
+<!-- Home Screen -->
+<div class="home-screen">
+    <h1>Welcome to the Stock Market Learning App</h1>
+    <div class="button-container">
+        <button class="navigate-button" onclick="navigateTo('ethical-issues')">Ethical Issues</button>
+        <button class="navigate-button" onclick="navigateTo('employment-impact')">Employment Impact</button>
+        <button class="navigate-button" onclick="navigateTo('key-takeaways')">Key Takeaways</button>
+        <button class="navigate-button" onclick="navigateTo('story-mode')">Story Mode</button>
+        <button class="navigate-button" onclick="navigateTo('game-mode')">Game Mode</button>
+        <button class="navigate-button" onclick="navigateTo('test-your-knowledge')">Test Your Knowledge</button>
+        <button class="navigate-button" onclick="navigateTo('summary')">Summary</button>
+        <button class="navigate-button" onclick="navigateTo('ai-mentor')">AI Mentor</button>
+        <button class="navigate-button" onclick="navigateTo('tariffs')">Tariffs</button>
+        <button class="navigate-button" onclick="navigateTo('crypto-vs-stocks')">Crypto vs. Stocks</button>
+        <button class="navigate-button" onclick="navigateTo('market-crashes')">Market Crashes</button>
+        <button class="navigate-button" onclick="navigateTo('stock-myths')">Stock Market Myths</button>
+        <button class="navigate-button" onclick="navigateTo('etfs-vs-mutuals')">ETFs vs. Mutual Funds</button>
+        <button class="navigate-button" onclick="navigateTo('risk')">Understanding Risk</button>
+        <button class="navigate-button" onclick="navigateTo('global-events')">Global Events & Market Impact</button>
+
+
+
+    </div>
+</div>
+<div id="risk" class="section">
+    <h2>Understanding Risk</h2>
+    <p>Risk in the stock market refers to the chance of losing money or not achieving expected returns on an investment. Different types of risks exist, such as:</p>
+    <ul>
+        <li><strong>Market Risk:</strong> The risk of losses due to overall market movement, including economic events.</li>
+        <li><strong>Volatility Risk:</strong> The risk that a stock's price may change unpredictably due to fluctuations in supply and demand.</li>
+        <li><strong>Liquidity Risk:</strong> The risk of being unable to sell a stock or asset quickly without significantly impacting its price.</li>
+        <li><strong>Credit Risk:</strong> The risk that the company you’ve invested in may not meet its financial obligations, like paying dividends or interest.</li>
+    </ul>
+    <p>Understanding and managing risk is key to successful investing. Diversification, or spreading investments across different assets, can help mitigate risk.</p>
+</div>
+
+<button class="navigate-button" onclick="navigateTo('risk')">Understanding Risk</button>
+
+
+<!-- Section Container -->
+<div class="section-container" id="section-container">
+    <!-- Story Mode Section -->
+    <div class="section" id="story-mode" style="display: none;">
+        <h2>Story Mode</h2>
+        <p>Embark on an interactive journey to build your stock market skills!</p>
+        <div class="story-step" id="story-step-1">
+            <h3>Step 1: Starting Out</h3>
+            <p>You have $10,000 to invest. Choose wisely!</p>
+            <button onclick="nextStoryStep(2)">Invest in a Tech Company</button>
+            <button onclick="nextStoryStep(3)">Invest in Renewable Energy</button>
+        </div>
+        <div class="story-step" id="story-step-2" style="display: none;">
+            <h3>Step 2: Market Surge</h3>
+            <p>The tech company’s stock rises by 20%! What’s your next move?</p>
+            <button onclick="nextStoryStep(4)">Sell and take profits</button>
+            <button onclick="nextStoryStep(5)">Hold for long-term gains</button>
+        </div>
+        <div class="story-step" id="story-step-3" style="display: none;">
+            <h3>Step 2: Renewable Energy</h3>
+            <p>Your investment grows slowly but steadily. What’s your next move?</p>
+            <button onclick="nextStoryStep(4)">Sell and explore other options</button>
+            <button onclick="nextStoryStep(5)">Hold for long-term gains</button>
+        </div>
+        <div class="story-step" id="story-step-4" style="display: none;">
+            <h3>Step 3: Ethical Dilemma</h3>
+            <p>You learn about insider trading in your chosen sector. Do you report it?</p>
+            <button onclick="nextStoryStep(6)">Report the activity</button>
+            <button onclick="nextStoryStep(7)">Ignore it and focus on profits</button>
+        </div>
+        <div class="story-step" id="story-step-5" style="display: none;">
+            <h3>Step 3: Long-term Success</h3>
+            <p>Your patience pays off with consistent gains over time. What do you want to learn next?</p>
+            <button onclick="navigateTo('home')">Return to Home</button>
+        </div>
+        <div class="story-step" id="story-step-6" style="display: none;">
+            <h3>Step 4: Integrity Pays Off</h3>
+            <p>Your decision to report boosts market confidence. Your portfolio sees gains!</p>
+            <button onclick="navigateTo('home')">Finish Story Mode</button>
+        </div>
+        <div class="story-step" id="story-step-7" style="display: none;">
+            <h3>Step 4: Ethical Consequences</h3>
+            <p>Ignoring the issue leads to market instability. Your portfolio suffers.</p>
+            <button onclick="navigateTo('home')">Finish Story Mode</button>
+        </div>
+    </div>
+    <!-- Market Crashes Section -->
+    <div class="section" id="market-crashes" style="display: none;">
+        <h2>Historical Market Crashes</h2>
+        <p>Market crashes are sudden drops in stock prices that can cause panic and economic disruption. They're usually triggered by fear, overvaluation, bad financial practices, or global events. Knowing what to do during a crash is key to smart investing.</p>
+        <ul>
+            <li>
+                <strong>1929 - The Great Depression:</strong> Caused by rampant speculation and buying stocks on borrowed money.
+                <br><em>What to do:</em> Don’t over-leverage your investments. Build a diversified, stable portfolio.
+            </li>
+            <li>
+                <strong>1987 - Black Monday:</strong> A massive 22% drop in one day, fueled by panic and automated trading.
+                <br><em>What to do:</em> Don’t panic-sell. Stay focused on long-term value and ignore short-term noise.
+            </li>
+            <li>
+                <strong>2000 - Dot-com Bubble:</strong> Tech companies with no profits became overvalued.
+                <br><em>What to do:</em> Always research a company’s fundamentals before investing in hype.
+            </li>
+            <li>
+                <strong>2008 - Financial Crisis:</strong> Caused by subprime mortgage collapse and risky lending.
+                <br><em>What to do:</em> Keep an emergency fund and avoid risky, debt-fueled investments.
+            </li>
+            <li>
+                <strong>2020 - COVID Crash:</strong> Markets dropped fast due to global shutdown fears.
+                <br><em>What to do:</em> If your investments are strong long-term, hold steady — markets often recover.
+            </li>
+        </ul>
+        <p><strong>Overall Advice:</strong> Don't make emotional decisions. Diversify your investments and plan for the long term. Crashes are part of the market cycle — what matters most is how you respond.</p>
+        <button class="navigate-button" onclick="navigateTo('home')">Back to Home</button>
+    </div>
+    <div class="section" id="stock-myths" style="display:none;">
+        <h2>Stock Market Myths</h2>
+        <ul>
+            <li>“You need to be rich to invest.”</li>
+            <li>“Stocks are just like gambling.”</li>
+            <li>“Buy low, sell high” is always easy.</li>
+        </ul>
+        <button onclick="navigateTo('home')">Back</button>
+    </div>
+    <!-- Game Mode Section: iPhone Production Game and Stock Market Simulator -->
+    <div class="section" id="game-mode" style="display: none;">
+        <h2>Game Mode</h2>
+        <button class="navigate-button" onclick="startIPhoneProductionGame()">iPhone Production Game</button>
+        <button class="navigate-button" onclick="startStockMarketSimulator()">Stock Market Simulator</button>
+        <button class="navigate-button" onclick="startFlashFrenzyClash()">Flash Frenzy Clash</button>
+        <!-- iPhone Production Game -->
+        <div id="iphone-production-game" style="display: none;">
+            <h3>iPhone Production Game</h3>
+            <p>Welcome to the iPhone Production Game! Your goal is to produce and sell iPhones to grow your business!</p>
+            <div id="game-container">
+                <div id="character">
+                    <img src="images/iphone.png" alt="iPhone" id="iphone" style="width: 150px;">
+                </div>
+                <div id="iphone-status">
+                    <h3>iPhones Produced: <span id="iphone-count">0</span></h3>
+                    <h3>Coins: <span id="coin-count">0</span></h3>
+                    <button onclick="produceIPhone()">Produce an iPhone</button>
+                    <button onclick="sellIPhones()">Sell iPhones</button>
+                    <button onclick="upgradeProduction()">Upgrade Production</button>
+                </div>
+                <div id="production-upgrades" style="display: none;">
+                    <h3>Production Upgrades</h3>
+                    <p>Upgrade your production capabilities to make iPhones faster!</p>
+                    <button onclick="upgradeSpeed()">Faster Production (100 coins)</button>
+                    <button onclick="upgradeCapacity()">Increase Capacity (200 coins)</button>
+                </div>
+            </div>
+        </div>
+        <!-- Stock Market Simulator -->
+        <div id="stock-market-simulator" style="display: none;">
+            <h3>Stock Market Simulator</h3>
+            <p>Welcome to the Stock Market Simulator! Your goal is to make the most profit as stock prices rise.</p>
+            <canvas id="stock-chart" width="400" height="200"></canvas>
+            <div id="stock-status">
+                <h3>Stock Price: $<span id="stock-price">100</span></h3>
+                <h3>Cash: $<span id="cash">1000</span></h3>
+                <h3>Stocks Owned: <span id="stocks-owned">0</span></h3>
+                <button onclick="buyStock()">Buy Stock</button>
+                <button onclick="sellStock()">Sell Stock</button>
+                <button onclick="takeMargin()">Take Margin</button>
+            </div>
+            <div id="margin-status" style="display: none;">
+                <h3>Margin: $<span id="margin-amount">0</span></h3>
+                <h3>Margin Interest: $<span id="margin-interest">0</span></h3>
+            </div>
+            <div id="time-limit" style="display: none;">
+                <h3>Time Limit: <span id="time-limit-countdown">60</span> seconds</h3>
+            </div>
+            <div id="bonus-multiplier" style="display: none;">
+                <h3>Bonus Multiplier: <span id="bonus-multiplier-value">1x</span></h3>
+            </div>
+        </div>
+        <!-- Flash Frenzy Clash -->
+        <div id="flash-frenzy-clash" style="display: none;">
+            <h3>Flash Frenzy Clash</h3>
+            <p>Welcome to Flash Frenzy Clash! Your goal is to make the most profit as stock prices rise.</p>
+            <canvas id="flash-chart" width="400" height="200"></canvas>
+            <div id="flash-status">
+                <h3>Stock Price: $<span id="flash-stock-price">100</span></h3>
+                <h3>Cash: $<span id="flash-cash">1000</span></h3>
+                <h3>Stocks Owned: <span id="flash-stocks-owned">0</span></h3>
+                <button onclick="flashBuyStock()">Buy Stock</button>
+                <button onclick="flashSellStock()">Sell Stock</button>
+            </div>
+            <div id="flash-time-limit" style="display: none;">
+                <h3>Time Limit: <span id="flash-time-limit-countdown">60</span> seconds</h3>
+            </div>
+            <div id="current-events" style="display: none;">
+                <h3>Current Events</h3>
+                <p id="current-event-description"></p>
+            </div>
+        </div>
+    </div>
+    <div class="section" id="etfs-vs-mutuals" style="display:none;">
+        <h2>ETFs vs. Mutual Funds</h2>
+        <table border="1" cellpadding="6">
+            <tr><th></th><th>ETFs</th><th>Mutual Funds</th></tr>
+            <tr><td>Traded</td><td>All day like stocks</td><td>Once daily after market close</td></tr>
+            <tr><td>Fees</td><td>Low</td><td>Higher (often)</td></tr>
+            <tr><td>Minimum Investment</td><td>None</td><td>Usually required</td></tr>
+        </table>
+        <button onclick="navigateTo('home')">Back</button>
+    </div>
+
+    <!-- Ethical Issues Section -->
+    <div class="section" id="ethical-issues" style="display: none;">
+        <h2>Ethical Issues</h2>
+        <ul>
+            <li><button onclick="showPopup('Insider Trading')">Insider Trading</button></li>
+            <li><button onclick="showPopup('Market Manipulation')">Market Manipulation</button></li>
+            <li><button onclick="showPopup('Conflict of Interest')">Conflict of Interest</button></li>
+            <li><button onclick="showPopup('Short Selling')">Short Selling</button></li>
+            <li><button onclick="showPopup('High-Frequency Trading')">High-Frequency Trading</button></li>
+            <li><button onclick="showPopup('Market Timing')">Market Timing</button></li>
+            <li><button onclick="showPopup('Data Privacy')">Data Privacy</button></li>
+            <li><button onclick="showPopup('Sustainability')">Sustainability</button></li>
+            <li><button onclick="showPopup('Algorithmic Bias')">Algorithmic Bias</button></li>
+        </ul>
+        <div class="term-definition">
+            <h3>Terms:</h3>
+            <p><strong>Insider Trading:</strong> Trading based on material, non-public information.</p>
+            <p><strong>Market Manipulation:</strong> Actions to artificially inflate or deflate stock prices.</p>
+            <p><strong>Conflict of Interest:</strong> Situations where personal interests conflict with professional duties.</p>
+            <p><strong>Short Selling:</strong> Selling a stock that you do not own, hoping to buy it back at a lower price.</p>
+            <p><strong>High-Frequency Trading:</strong> Using algorithms to execute trades at extremely high speeds.</p>
+            <p><strong>Market Timing:</strong> Attempting to predict market movements to buy or sell stocks at optimal times.</p>
+            <p><strong>Data Privacy:</strong> Protecting personal information from unauthorized access, use, or disclosure.</p>
+            <p><strong>Sustainability:</strong> Meeting the needs of the present without compromising the ability of future generations to meet their own needs.</p>
+            <p><strong>Algorithmic Bias:</strong> Systematic unfairness or discrimination in algorithms, often due to biased training data or flawed algorithms.</p>
+        </div>
+        <button class="navigate-button" onclick="navigateTo('home')">Back to Home</button>
+        <button class="navigate-button" onclick="navigateTo('employment-impact')">Next</button>
+    </div>
+    <!-- Employment Impact Section -->
+    <div class="section" id="employment-impact" style="display: none;">
+        <h2>Employment Impact</h2>
+        <ul>
+            <li><button onclick="showDescription('Financial Analyst')">Financial Analyst</button></li>
+            <li><button onclick="showDescription('Stock Broker')">Stock Broker</button></li>
+            <li><button onclick="showDescription('Risk Pooling')">Risk Pooling</button></li>
+            <li><button onclick="showDescription('High-Frequency Trading (HFT) Engineer')">High-Frequency Trading (HFT) Engineer</button></li>
+            <li><button onclick="showDescription('Quantitative Analyst')">Quantitative Analyst</button></li>
+            <li><button onclick="showDescription('Portfolio Manager')">Portfolio Manager</button></li>
+        </ul>
+        <div id="job-description" style="display: none;">
+            <h3>Job Description</h3>
+            <p id="description-text"></p>
+        </div>
+        <div class="term-definition">
+            <h3>Terms:</h3>
+            <p><strong>Financial Analyst:</strong> Evaluates financial data and makes investment recommendations.</p>
+            <p><strong>Stock Broker:</strong> Facilitates the buying and selling of stocks.</p>
+            <p><strong>Risk Pooling:</strong> Reduces financial impact by sharing risks among participants.</p>
+            <p><strong>High-Frequency Trading (HFT) Engineer:</strong> Designs algorithms that allow financial firms to trade stocks at extremely high speeds.</p>
+            <p><strong>Quantitative Analyst:</strong> Uses mathematical models to analyze financial data and make investment decisions.</p>
+            <p><strong>Portfolio Manager:</strong> Manages investment portfolios to meet client objectives.</p>
+        </div>
+        <button class="navigate-button" onclick="navigateTo('ethical-issues')">Back</button>
+        <button class="navigate-button" onclick="navigateTo('key-takeaways')">Next</button>
+    </div>
+    <!-- Key Takeaways Section -->
+    <div class="section" id="key-takeaways" style="display: none;">
+        <h2>Key Takeaways</h2>
+        <p>Here are the essential lessons from the stock market:</p>
+        <ul>
+            <li>Understanding Market Trends</li>
+            <li>Importance of Diversification</li>
+            <li>Long-term vs Short-term Investments</li>
+        </ul>
+        <div class="term-definition">
+            <h3>Terms:</h3>
+            <p><strong>Market Trends:</strong> Patterns and directions in stock prices over time.</p>
+            <p><strong>Diversification:</strong> Spreading investments to reduce risk.</p>
+            <p><strong>Long-term vs Short-term Investments:</strong> Different strategies based on investment horizon.</p>
+        </div>
+        <button class="navigate-button" onclick="navigateTo('employment-impact')">Back</button>
+        <button class="navigate-button" onclick="navigateTo('summary')">Next</button>
+    </div>
+    <!-- Summary Section -->
+    <div class="section" id="summary" style="display: none;">
+        <h2>Summary</h2>
+        <p>Thank you for exploring the stock market app. We hope you found this educational and engaging! Here's a quick recap:</p>
+        <ul>
+            <li>Understanding the ethics and consequences in stock market trading.</li>
+            <li>The different career paths related to the financial industry.</li>
+            <li>The importance of key concepts like diversification, market trends, and more!</li>
+        </ul>
+        <button class="navigate-button" onclick="navigateTo('home')">Back to Home</button>
+    </div>
+    <!-- Test Your Knowledge Section -->
+    <div class="section" id="test-your-knowledge" style="display: none;">
+        <h2>Test Your Knowledge</h2>
+        <p>Answer the following questions to test your understanding of the stock market:</p>
+        <div class="question">
+            <p>1. What is a stock?</p>
+            <label><input type="radio" name="q1" value="a"> A bond</label><br>
+            <label><input type="radio" name="q1" value="b"> A share in the ownership of a company</label><br>
+            <label><input type="radio" name="q1" value="c"> A type of savings account</label>
+        </div>
+        <div class="question">
+            <p>2. What does "diversification" in investing mean?</p>
+            <label><input type="radio" name="q2" value="a"> Focusing on one type of investment</label><br>
+            <label><input type="radio" name="q2" value="b"> Spreading investments across various assets to reduce risk</label><br>
+            <label><input type="radio" name="q2" value="c"> Buying and selling investments frequently</label>
+        </div>
+        <div class="question">
+            <p>3. What is a bond?</p>
+            <label><input type="radio" name="q3" value="a"> A loan made to a company or government</label><br>
+            <label><input type="radio" name="q3" value="b"> A type of stock</label><br>
+            <label><input type="radio" name="q3" value="c"> A type of cryptocurrency</label>
+        </div>
+        <button class="navigate-button" onclick="submitQuiz()">Submit Answers</button>
+        <button class="navigate-button" onclick="navigateTo('home')">Back to Home</button>
+    </div>
+    <!-- AI Mentor Section -->
+    <div class="section" id="ai-mentor" style="display: none;">
+        <h2>AI Stock Mentor</h2>
+        <p>Get personalized stock market advice from our AI mentor!</p>
+        <div class="ai-mentor">
+            <h3>Ask the Mentor:</h3>
+            <input type="text" id="mentor-input" placeholder="Type your question here...">
+            <button onclick="askMentor()">Ask</button>
+            <p id="mentor-response"></p>
+        </div>
+        <button class="navigate-button" onclick="navigateTo('home')">Back to Home</button>
+    </div>
+</div>
+<!-- Pop-up for Ethical Issues -->
+<div class="popup" id="popup" style="display: none;">
+    <div class="popup-content">
+        <span class="close-popup" onclick="closePopup()">&times;</span>
+        <h3 id="popup-title"></h3>
+        <p id="popup-description"></p>
+    </div>
+</div>
+<div class="section" id="tariffs" style="display: none;">
+    <h2>American Tariffs</h2>
+    <p>Understand tariffs and their impact on goods and prices in recent U.S. policy.</p>
+    <div class="tariff-calculator">
+        <label for="tariff-price">Enter the product price (USD):</label>
+        <input type="number" id="tariff-price" placeholder="Price in USD" min="0">
+        <label for="tariff-rate">Enter tariff rate (%):</label>
+        <input type="number" id="tariff-rate" placeholder="Rate in %" min="0">
+        <button class="navigate-button" onclick="calculateTariff()">Calculate Tariff</button>
+        <div id="tariff-result"></div>
+    </div>
+    <button class="navigate-button" onclick="navigateTo('home')">Back to Home</button>
+</div
+        <!-- Crypto vs. Stocks Section -->
+<div class="section" id="crypto-vs-stocks" style="display:none;">
+    <h2>Crypto vs. Stocks</h2>
+    <p>Compare the key differences between cryptocurrencies and traditional stocks.</p>
+    <table border="1" cellpadding="10" style="margin: 20px auto; border-collapse: collapse;">
+        <thead>
+        <tr>
+            <th>Feature</th>
+            <th>Cryptocurrency</th>
+            <th>Stocks</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>Volatility</td>
+            <td>Very high</td>
+            <td>Moderate</td>
+        </tr>
+        <tr>
+            <td>Ownership</td>
+            <td>Digital tokens</td>
+            <td>Equity in a company</td>
+        </tr>
+        <tr>
+            <td>Regulation</td>
+            <td>Lightly regulated</td>
+            <td>Heavily regulated</td>
+        </tr>
+        <tr>
+            <td>Market Hours</td>
+            <td>24/7</td>
+            <td>Weekdays, 9:30–4 ET</td>
+        </tr>
+        <tr>
+            <td>Risk Level</td>
+            <td>High</td>
+            <td>Varies</td>
+        </tr>
+        </tbody>
+    </table>
+    <button class="navigate-button" onclick="navigateTo('home')">Back to Home</button>
+</div>
+<!-- Include Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Theme switch logic
+    const themeSwitch = document.getElementById('theme-checkbox');
+    const body = document.body;
+    const currentTheme = localStorage.getItem('theme') || 'light';
+
+
+    if (currentTheme === 'dark') {
+        body.setAttribute('data-theme', 'dark');
+        themeSwitch.checked = true;
+    } else {
+        body.setAttribute('data-theme', 'light');
+    }
+
+
+    themeSwitch.addEventListener('change', () => {
+        if (themeSwitch.checked) {
+            body.setAttribute('data-theme', 'dark');
+            localStorage.setItem('theme', 'dark');
+        } else {
+            body.setAttribute('data-theme', 'light');
+            localStorage.setItem('theme', 'light');
+        }
+    });
+
+
+    function navigateTo(sectionId) {
+        document.querySelectorAll('.section').forEach(section => {
+            section.style.display = 'none';
+        });
+        document.getElementById('section-container').style.display = 'block';
+        if (sectionId === 'home') {
+            document.querySelector('.home-screen').style.display = 'block';
+            document.getElementById('section-container').style.display = 'none';
+        } else {
+            document.querySelector(`#${sectionId}`).style.display = 'block';
+            if (sectionId === 'game-mode') {
+                startIPhoneProduction(); // Start production loop when entering game mode
+            }
+        }
+    }
+
+
+    // iPhone Production Game Logic
+    let iphoneCount = 0;
+    let coins = 0;
+    let iphoneProductionSpeed = 1000; // Default speed to produce an iPhone every second
+    let iphoneProductionInterval;
+
+
+    function startIPhoneProduction() {
+        iphoneProductionInterval = setInterval(() => {
+            produceIPhone();
+        }, iphoneProductionSpeed);
+    }
+
+
+    function produceIPhone() {
+        iphoneCount++;
+        coins += 5; // Earn coins for each iPhone produced
+        updateIPhoneCount();
+        updateCoinCount();
+    }
+
+
+    function sellIPhones() {
+        if (iphoneCount > 0) {
+            coins += iphoneCount * 10; // Sell iPhones for 10 coins each
+            iphoneCount = 0; // Reset iPhone count after selling
+            updateIPhoneCount();
+            updateCoinCount();
+            alert("iPhones sold! You now have " + coins + " coins.");
+        } else {
+            alert("You have no iPhones to sell!");
+        }
+    }
+
+
+    function upgradeProduction() {
+        document.getElementById('production-upgrades').style.display = 'block';
+    }
+
+
+    function upgradeSpeed() {
+        if (coins >= 100) {
+            coins -= 100;
+            iphoneProductionSpeed -= 200; // Reduce production speed (faster)
+            clearInterval(iphoneProductionInterval);
+            startIPhoneProduction(); // Restart the production loop
+            alert("iPhone production speed upgraded!");
+            updateCoinCount();
+        } else {
+            alert("Not enough coins!");
+        }
+    }
+
+
+    function upgradeCapacity() {
+        if (coins >= 200) {
+            coins -= 200;
+            alert("Production capacity upgraded!");
+            updateCoinCount();
+        } else {
+            alert("Not enough coins!");
+        }
+    }
+
+
+    function updateIPhoneCount() {
+        document.getElementById('iphone-count').innerText = iphoneCount;
+    }
+
+
+    function updateCoinCount() {
+        document.getElementById('coin-count').innerText = coins;
+    }
+
+
+    function startIPhoneProductionGame() {
+        document.getElementById('iphone-production-game').style.display = 'block';
+        document.getElementById('stock-market-simulator').style.display = 'none';
+        document.getElementById('flash-frenzy-clash').style.display = 'none';
+    }
+
+
+    // Stock Market Simulator Logic
+    let stockPrice = 100;
+    let cash = 1000;
+    let stocksOwned = 0;
+    let marginAmount = 0;
+    let marginInterest = 0;
+    let timeLeft = 60; // 60 seconds
+    let bonusMultiplier = 1;
+    let stockData = [];
+    let stockChart;
+
+
+    function startStockMarketSimulator() {
+        document.getElementById('iphone-production-game').style.display = 'none';
+        document.getElementById('stock-market-simulator').style.display = 'block';
+        document.getElementById('flash-frenzy-clash').style.display = 'none';
+        startStockPriceSimulation();
+        startTimeLimit();
+    }
+
+
+    function startStockPriceSimulation() {
+        stockChart = new Chart(document.getElementById('stock-chart'), {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Stock Price',
+                    data: [],
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 2,
+                    fill: false
+                }]
+            },
+            options: {
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: 'second'
+                        }
+                    },
+                    y: {
+                        beginAtZero: false
+                    }
+                }
+            }
+        });
+
+
+        setInterval(() => {
+            const newPrice = stockPrice + (Math.random() - 0.5) * 10;
+            stockPrice = Math.max(1, newPrice); // Ensure stock price doesn't go below 1
+            stockData.push({x: new Date(), y: stockPrice});
+            stockChart.data.labels.push(new Date().toLocaleTimeString());
+            stockChart.data.datasets[0].data.push(stockPrice);
+            stockChart.update();
+
+
+            updateStockPrice();
+        }, 1000);
+    }
+
+
+    function buyStock() {
+        if (cash >= stockPrice) {
+            cash -= stockPrice;
+            stocksOwned++;
+            updateCash();
+            updateStocksOwned();
+            alert("Stock bought!");
+        } else {
+            alert("Not enough cash!");
+        }
+    }
+
+
+    function sellStock() {
+        if (stocksOwned > 0) {
+            cash += stockPrice;
+            stocksOwned--;
+            updateCash();
+            updateStocksOwned();
+            alert("Stock sold!");
+        } else {
+            alert("No stocks to sell!");
+        }
+    }
+
+
+    function takeMargin() {
+        if (cash >= stockPrice) {
+            cash -= stockPrice;
+            marginAmount += stockPrice;
+            marginInterest += stockPrice * 0.01; // 1% interest
+            updateCash();
+            updateMargin();
+            alert("Margin taken!");
+        } else {
+            alert("Not enough cash!");
+        }
+    }
+
+
+    function updateStockPrice() {
+        document.getElementById('stock-price').innerText = stockPrice.toFixed(2);
+    }
+
+
+    function updateCash() {
+        document.getElementById('cash').innerText = cash.toFixed(2);
+    }
+
+
+    function updateStocksOwned() {
+        document.getElementById('stocks-owned').innerText = stocksOwned;
+    }
+
+
+    function updateMargin() {
+        document.getElementById('margin-amount').innerText = marginAmount.toFixed(2);
+        document.getElementById('margin-interest').innerText = marginInterest.toFixed(2);
+    }
+
+
+    function startTimeLimit() {
+        document.getElementById('time-limit').style.display = 'block';
+        const timeLimitInterval = setInterval(() => {
+            timeLeft--;
+            document.getElementById('time-limit-countdown').innerText = timeLeft;
+            if (timeLeft <= 0) {
+                clearInterval(timeLimitInterval);
+                alert("Time is up!");
+                navigateTo('home');
+            }
+        }, 1000);
+    }
+
+
+    // Flash Frenzy Clash Logic
+    let flashStockPrice = 100;
+    let flashCash = 1000;
+    let flashStocksOwned = 0;
+    let flashTimeLeft = 60; // 60 seconds
+    let flashStockData = [];
+    let flashChart;
+
+
+    function startFlashFrenzyClash() {
+        document.getElementById('iphone-production-game').style.display = 'none';
+        document.getElementById('stock-market-simulator').style.display = 'none';
+        document.getElementById('flash-frenzy-clash').style.display = 'block';
+        startFlashStockPriceSimulation();
+        startFlashTimeLimit();
+        showCurrentEvent();
+    }
+
+
+    function startFlashStockPriceSimulation() {
+        flashChart = new Chart(document.getElementById('flash-chart'), {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Stock Price',
+                    data: [],
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 2,
+                    fill: false
+                }]
+            },
+            options: {
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: 'second'
+                        }
+                    },
+                    y: {
+                        beginAtZero: false
+                    }
+                }
+            }
+        });
+
+
+        setInterval(() => {
+            const newPrice = flashStockPrice + (Math.random() - 0.5) * 10;
+            flashStockPrice = Math.max(1, newPrice); // Ensure stock price doesn't go below 1
+            flashStockData.push({x: new Date(), y: flashStockPrice});
+            flashChart.data.labels.push(new Date().toLocaleTimeString());
+            flashChart.data.datasets[0].data.push(flashStockPrice);
+            flashChart.update();
+
+
+            updateFlashStockPrice();
+        }, 1000);
+    }
+
+
+    function flashBuyStock() {
+        if (flashCash >= flashStockPrice) {
+            flashCash -= flashStockPrice;
+            flashStocksOwned++;
+            updateFlashCash();
+            updateFlashStocksOwned();
+            alert("Stock bought!");
+        } else {
+            alert("Not enough cash!");
+        }
+    }
+
+
+    function flashSellStock() {
+        if (flashStocksOwned > 0) {
+            flashCash += flashStockPrice;
+            flashStocksOwned--;
+            updateFlashCash();
+            updateFlashStocksOwned();
+            alert("Stock sold!");
+        } else {
+            alert("No stocks to sell!");
+        }
+    }
+
+
+    function updateFlashStockPrice() {
+        document.getElementById('flash-stock-price').innerText = flashStockPrice.toFixed(2);
+    }
+
+
+    function updateFlashCash() {
+        document.getElementById('flash-cash').innerText = flashCash.toFixed(2);
+    }
+
+
+    function updateFlashStocksOwned() {
+        document.getElementById('flash-stocks-owned').innerText = flashStocksOwned;
+    }
+
+
+    function startFlashTimeLimit() {
+        document.getElementById('flash-time-limit').style.display = 'block';
+        const flashTimeLimitInterval = setInterval(() => {
+            flashTimeLeft--;
+            document.getElementById('flash-time-limit-countdown').innerText = flashTimeLeft;
+            if (flashTimeLeft <= 0) {
+                clearInterval(flashTimeLimitInterval);
+                alert("Time is up!");
+                navigateTo('home');
+            }
+        }, 1000);
+    }
+
+
+    function showCurrentEvent() {
+        const events = [
+            "Apple announces a new iPhone model, boosting stock prices!",
+            "A major tech company reports a significant loss, causing stock prices to drop.",
+            "A new government policy supports renewable energy, increasing stock prices in the sector.",
+            "A major scandal breaks out in the tech industry, affecting stock prices negatively."
+        ];
+        const randomEvent = events[Math.floor(Math.random() * events.length)];
+        document.getElementById('current-event-description').innerText = randomEvent;
+        document.getElementById('current-events').style.display = 'block';
+    }
+
+
+    // Pop-up for Ethical Issues
+    function showPopup(issue) {
+        const descriptions = {
+            'Insider Trading': 'Insider trading occurs when someone with access to confidential information about a company uses it to make investment decisions.',
+            'Market Manipulation': 'Market manipulation involves practices that deceive investors or distort market prices to gain an unfair advantage.',
+            'Conflict of Interest': 'A conflict of interest arises when an individual or organization has competing interests or loyalties, potentially affecting their decisions.',
+            'Short Selling': 'Short selling is the practice of selling a security that the seller does not own, hoping to buy it back at a lower price to make a profit.',
+            'High-Frequency Trading': 'High-frequency trading (HFT) involves using algorithms to execute trades at extremely high speeds, often within milliseconds.',
+            'Market Timing': 'Market timing is the practice of trying to predict market movements to buy or sell stocks at optimal times.',
+            'Data Privacy': 'Data privacy refers to the protection of personal information from unauthorized access, use, or disclosure.',
+            'Sustainability': 'Sustainability involves meeting the needs of the present without compromising the ability of future generations to meet their own needs.',
+            'Algorithmic Bias': 'Algorithmic bias occurs when algorithms produce results that are systematically unfair or discriminatory.'
+        };
+
+
+        document.getElementById('popup-title').innerText = issue;
+        document.getElementById('popup-description').innerText = descriptions[issue];
+        document.getElementById('popup').style.display = 'block';
+    }
+
+
+    function closePopup() {
+        document.getElementById('popup').style.display = 'none';
+    }
+
+
+    // Job Descriptions
+    function showDescription(role) {
+        const descriptions = {
+            'Financial Analyst': 'A Financial Analyst evaluates financial data, makes recommendations for investments, and helps guide decisions regarding a company’s finances.',
+            'Stock Broker': 'A Stock Broker helps individuals or companies buy and sell stocks and other securities. They act as intermediaries between buyers and sellers.',
+            'Risk Pooling': 'Risk pooling involves gathering resources from multiple participants to reduce the financial impact of a loss on any single participant, commonly used in insurance.',
+            'High-Frequency Trading (HFT) Engineer': 'A High-Frequency Trading Engineer designs algorithms that allow financial firms to trade stocks at extremely high speeds.',
+            'Quantitative Analyst': 'A Quantitative Analyst uses mathematical models to analyze financial data and make investment decisions.',
+            'Portfolio Manager': 'A Portfolio Manager manages investment portfolios to meet client objectives.'
+        };
+
+
+        document.getElementById('job-description').style.display = 'block';
+        document.getElementById('description-text').innerText = descriptions[role];
+    }
+
+
+    // Story Mode Navigation
+    function nextStoryStep(step) {
+        const currentStep = document.querySelector('.story-step');
+        currentStep.style.display = 'none';
+        const nextStep = document.getElementById(`story-step-${step}`);
+        nextStep.style.display = 'block';
+    }
+
+
+    // Quiz Submission
+    function submitQuiz() {
+        const q1 = document.querySelector('input[name="q1"]:checked');
+        const q2 = document.querySelector('input[name="q2"]:checked');
+        const q3 = document.querySelector('input[name="q3"]:checked');
+        let score = 0;
+
+
+        if (q1 && q1.value === 'b') {
+            score++;
+        }
+        if (q2 && q2.value === 'b') {
+            score++;
+        }
+        if (q3 && q3.value === 'a') {
+            score++;
+        }
+
+
+        const result = `You scored ${score} out of 3`;
+        alert(result);
+    }
+
+
+    // AI Mentor
+    async function askMentor() {
+        const question = document.getElementById('mentor-input').value.trim();
+        if (!question) {
+            alert("Please enter a question.");
+            return;
+        }
+
+
+        document.getElementById('mentor-response').innerText = "Thinking...";
+
+
+        try {
+            const response = await fetch("https://api.openai.com/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": ``,
+                },
+                body: JSON.stringify({
+                    model: "gpt-4o-mini",
+                    messages: [{role: "user", content: question}],
+                    max_tokens: 100
+                })
+            });
+
+
+            const data = await response.json();
+            document.getElementById('mentor-response').innerText = data.choices[0].message.content;
+        } catch (error) {
+            document.getElementById('mentor-response').innerText = "Oops! Something went wrong. Try again.";
+            console.error("Error:", error);
+        }
+    }
+
+
+</script>
+</body>
+</html>

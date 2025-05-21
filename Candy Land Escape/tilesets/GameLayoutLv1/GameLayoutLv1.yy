@@ -1,0 +1,38 @@
+{
+  "$GMTileSet":"v1",
+  "%Name":"GameLayoutLv1",
+  "autoTileSets":[],
+  "macroPageTiles":{
+    "SerialiseHeight":0,
+    "SerialiseWidth":0,
+    "TileSerialiseData":[],
+  },
+  "name":"GameLayoutLv1",
+  "out_columns":7,
+  "out_tilehborder":2,
+  "out_tilevborder":2,
+  "parent":{
+    "name":"Tile Sets",
+    "path":"folders/Tile Sets.yy",
+  },
+  "resourceType":"GMTileSet",
+  "resourceVersion":"2.0",
+  "spriteId":{
+    "name":"TilesetLevel1",
+    "path":"sprites/TilesetLevel1/TilesetLevel1.yy",
+  },
+  "spriteNoExport":true,
+  "textureGroupId":{
+    "name":"Default",
+    "path":"texturegroups/Default",
+  },
+  "tileAnimationFrames":[],
+  "tileAnimationSpeed":15.0,
+  "tileHeight":157,
+  "tilehsep":1,
+  "tilevsep":1,
+  "tileWidth":157,
+  "tilexoff":0,
+  "tileyoff":0,
+  "tile_count":49,
+}
