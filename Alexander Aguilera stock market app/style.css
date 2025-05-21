@@ -1,0 +1,885 @@
+/* Light Theme */
+[data-theme="light"] {
+    --bg-color: #f0f8ff; /* Light blue background */
+    --color: #2c3e50;    /* Dark text */
+    --button-bg: linear-gradient(45deg, #6a5acd, #48c6ef); /* Gradient buttons */
+    --button-hover: #5dade2; /* Hover effect */
+    --heading-color: #34495e;
+}
+
+/* Dark Theme */
+[data-theme="dark"] {
+    --bg-color: #1e272e; /* Dark gray background */
+    --color: #ecf0f1;    /* Light text */
+    --button-bg: linear-gradient(45deg, #ff6b81, #f1c40f); /* Gradient buttons */
+    --button-hover: #d35400; /* Hover effect */
+    --heading-color: #ecf0f1;
+}
+
+/* General Styling */
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--color);
+    transition: all 0.5s ease;
+}
+
+h1 {
+    font-size: 2.5rem;
+    color: var(--heading-color);
+    text-align: center;
+    text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+/* Button container: making it responsive and centered */
+.button-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); /* Adjusts to fit the screen size */
+    gap: 16px;
+    max-width: 1200px;
+    margin: 30px auto;
+    padding: 0 20px;
+}
+
+/* Navigate button: updated style with Schwab-like effect */
+.navigate-button {
+    background-color: #fff;  /* White background */
+    color: #004b87;          /* Deep blue color */
+    border: 2px solid #004b87;  /* Blue border */
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    text-transform: uppercase;  /* Capitalizing text for emphasis */
+    cursor: pointer;
+    transition: transform 0.2s, background-color 0.3s, color 0.3s; /* Added smooth transition for color */
+}
+
+.navigate-button:hover {
+    background-color: #f1f1f1;  /* Light gray on hover */
+    color: #fff;                 /* White text on hover */
+    transform: scale(1.05);      /* Slightly enlarges on hover */
+}
+
+/* Section Title: Making it stand out with color */
+.section h2 {
+    color: #004b87; /* Deep blue color for headings */
+    font-size: 1.5rem; /* Slightly larger text for section titles */
+    margin-bottom: 10px; /* Space below titles */
+}
+
+/* Section content: More readable with white text */
+.section p,
+.section li {
+    color: #333333; /* Dark gray text for better readability */
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+/* Add your preferred layout and additional styles here */
+import { useState, useEffect } from 'react'
+import { Button } from "/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "/components/ui/card"
+import { Sun, Moon, ChevronRight, Play, BookOpen, BarChart2, Users, Shield, ArrowRight } from "lucide-react"
+import { Switch } from "/components/ui/switch"
+import { Label } from "/components/ui/label"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "/components/ui/tabs"
+
+// CSS Styles that match Schwab's aesthetic
+const schwabStyles = `
+.schwab-header {
+    background-color: #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.schwab-hero {
+    background: linear-gradient(135deg, #0076ce 0%, #004f9e 100%);
+    color: white;
+}
+
+.schwab-blue-btn {
+    background-color: #0076ce;
+    color: white;
+    transition: all 0.2s ease;
+}
+
+.schwab-blue-btn:hover {
+    background-color: #0061ad;
+}
+
+.schwab-outline-btn {
+    border-color: #0076ce;
+    color: #0076ce;
+    transition: all 0.2s ease;
+}
+
+.schwab-outline-btn:hover {
+    background-color: #f0f7ff;
+}
+
+.schwab-card {
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.schwab-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+}
+
+.schwab-tab-active {
+    color: #0076ce;
+    border-bottom: 2px solid #0076ce;
+}
+
+.schwab-footer {
+    background-color: #f8f9fa;
+    border-top: 1px solid #e5e7eb;
+}
+
+/* Dark mode variants */
+.dark .schwab-header {
+    background-color: #1f2937;
+    border-bottom-color: #374151;
+}
+
+dark .schwab-hero {
+    background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+}
+
+dark .schwab-footer {
+    background-color: #111827;
+    border-top-color: #374151;
+}
+`
+
+// JavaScript utility functions
+   const schwabScripts = `
+// Track user progress
+   function trackProgress(section) {
+    if (typeof window !== 'undefined') {
+localStorage.setItem('lastVisitedSection', section)
+}
+}
+
+// Smooth scroll to sections
+   function scrollToSection(id) {
+    const element = document.getElementById(id)
+    if (element) {
+element.scrollIntoView({ behavior: 'smooth' })
+}
+}
+
+// Initialize tooltips
+   function initTooltips() {
+// This would initialize any tooltip functionality
+// Implementation depends on your tooltip library
+}
+
+// Handle video modal
+   function openVideoModal(videoId) {
+// Implementation for video modal
+console.log('Opening video:', videoId)
+}
+`
+
+export default function SchwabStyleTradingApp() {
+const [darkMode, setDarkMode] = useState(false)
+const [activeTab, setActiveTab] = useState('learn')
+const [lastSection, setLastSection] = useState('')
+const [videoModalOpen, setVideoModalOpen] = useState(false)
+
+useEffect(() => {
+// Apply Schwab styles
+const styleTag = document.createElement('style')
+styleTag.innerHTML = schwabStyles
+document.head.appendChild(styleTag)
+
+// Load user progress
+if (typeof window !== 'undefined') {
+    const savedSection = localStorage.getItem('lastVisitedSection')
+    if (savedSection) {
+setLastSection(savedSection)
+setActiveTab(savedSection)
+}
+
+// Initialize scripts
+eval(schwabScripts)
+}
+
+    return () => {
+document.head.removeChild(styleTag)
+}
+}, [])
+
+const handleTabChange = (tab) => {
+setActiveTab(tab)
+trackProgress(tab)
+}
+
+    const openVideo = (videoId) => {
+setVideoModalOpen(true)
+openVideoModal(videoId)
+}
+
+    return (
+    <div className={`min-h-screen ${darkMode ? 'dark' : ''}`}>
+                                                             {/* Header */}
+<header className="schwab-header sticky top-0 z-50">
+<div className="container mx-auto px-4 py-3 flex justify-between items-center">
+<div className="flex items-center space-x-3">
+<BarChart2 className="h-8 w-8 text-blue-600" />
+<h1 className="text-xl font-bold text-gray-800 dark:text-white">Trading Academy</h1>
+</div>
+<nav className="hidden md:flex space-x-6">
+<button
+onClick={() => handleTabChange('learn')}
+    className={`py-2 ${activeTab === 'learn' ? 'schwab-tab-active font-medium' : 'text-gray-600 dark:text-gray-300'}`}
+>
+Learn
+</button>
+<button
+onClick={() => handleTabChange('practice')}
+    className={`py-2 ${activeTab === 'practice' ? 'schwab-tab-active font-medium' : 'text-gray-600 dark:text-gray-300'}`}
+>
+Practice
+</button>
+<button
+onClick={() => handleTabChange('resources')}
+    className={`py-2 ${activeTab === 'resources' ? 'schwab-tab-active font-medium' : 'text-gray-600 dark:text-gray-300'}`}
+>
+Resources
+</button>
+</nav>
+<div className="flex items-center space-x-4">
+<div className="flex items-center space-x-2">
+<Sun className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+<Switch
+id="dark-mode"
+checked={darkMode}
+    onCheckedChange={setDarkMode}
+/>
+<Moon className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+<Label htmlFor="dark-mode" className="sr-only">Dark Mode</Label>
+</div>
+<Button variant="outline" className="schwab-outline-btn">
+Sign In
+</Button>
+</div>
+</div>
+</header>
+
+{/* Hero Section */}
+<section className="schwab-hero py-16">
+<div className="container mx-auto px-4">
+<div className="max-w-3xl">
+<h2 className="text-3xl md:text-4xl font-bold mb-4">Learn to Trade Like a Pro</h2>
+<p className="text-lg md:text-xl mb-8">
+Master the markets with our comprehensive educational resources,
+interactive tools, and expert insights.
+</p>
+<div className="flex flex-col sm:flex-row gap-4">
+<Button
+className="schwab-blue-btn"
+onClick={() => openVideo('intro')}
+>
+<Play className="mr-2 h-4 w-4" /> Watch Intro Video
+</Button>
+<Button variant="outline" className="schwab-outline-btn text-white border-white hover:bg-white/10">
+<BookOpen className="mr-2 h-4 w-4" /> Browse Courses
+</Button>
+</div>
+</div>
+</div>
+</section>
+
+{/* Main Content */}
+<main className="container mx-auto px-4 py-12">
+{/* Learning Path */}
+<section id="learn" className={`${activeTab !== 'learn' ? 'hidden' : ''} mb-16`}>
+<h2 className="text-2xl font-bold mb-8">Start Your Learning Path</h2>
+<div className="grid md:grid-cols-3 gap-6">
+{/* Beginner Card */}
+<Card className="schwab-card">
+<CardHeader>
+<div className="bg-blue-100 dark:bg-blue-900/50 p-3 rounded-full w-12 h-12 flex items-center justify-center mb-4">
+<BookOpen className="text-blue-600 dark:text-blue-400" />
+</div>
+<CardTitle>Beginner Basics</CardTitle>
+<CardDescription>
+Learn the fundamentals of stock market investing
+</CardDescription>
+</CardHeader>
+<CardContent>
+<ul className="space-y-2 text-sm">
+<li className="flex items-center">
+<ArrowRight className="h-4 w-4 mr-2 text-blue-600" />
+Market terminology
+</li>
+<li className="flex items-center">
+<ArrowRight className="h-4 w-4 mr-2 text-blue-600" />
+How to read stock charts
+</li>
+<li className="flex items-center">
+<ArrowRight className="h-4 w-4 mr-2 text-blue-600" />
+Placing your first trade
+</li>
+</ul>
+</CardContent>
+<CardFooter>
+<Button variant="link" className="pl-0 text-blue-600 dark:text-blue-400">
+Start Learning <ChevronRight className="ml-1 h-4 w-4" />
+</Button>
+</CardFooter>
+</Card>
+
+{/* Intermediate Card */}
+<Card className="schwab-card">
+<CardHeader>
+<div className="bg-green-100 dark:bg-green-900/50 p-3 rounded-full w-12 h-12 flex items-center justify-center mb-4">
+<BarChart2 className="text-green-600 dark:text-green-400" />
+</div>
+<CardTitle>Intermediate Strategies</CardTitle>
+<CardDescription>
+Build your skills with more advanced techniques
+</CardDescription>
+</CardHeader>
+<CardContent>
+<ul className="space-y-2 text-sm">
+<li className="flex items-center">
+<ArrowRight className="h-4 w-4 mr-2 text-green-600" />
+Technical analysis
+</li>
+<li className="flex items-center">
+<ArrowRight className="h-4 w-4 mr-2 text-green-600" />
+Fundamental analysis
+</li>
+<li className="flex items-center">
+<ArrowRight className="h-4 w-4 mr-2 text-green-600" />
+Options basics
+</li>
+</ul>
+</CardContent>
+<CardFooter>
+<Button variant="link" className="pl-0 text-green-600 dark:text-green-400">
+Start Learning <ChevronRight className="ml-1 h-4 w-4" />
+</Button>
+</CardFooter>
+</Card>
+
+{/* Advanced Card */}
+<Card className="schwab-card">
+<CardHeader>
+<div className="bg-purple-100 dark:bg-purple-900/50 p-3 rounded-full w-12 h-12 flex items-center justify-center mb-4">
+<Shield className="text-purple-600 dark:text-purple-400" />
+</div>
+<CardTitle>Advanced Trading</CardTitle>
+<CardDescription>
+Sophisticated techniques for experienced traders
+</CardDescription>
+</CardHeader>
+<CardContent>
+<ul className="space-y-2 text-sm">
+<li className="flex items-center">
+<ArrowRight className="h-4 w-4 mr-2 text-purple-600" />
+Options strategies
+</li>
+<li className="flex items-center">
+<ArrowRight className="h-4 w-4 mr-2 text-purple-600" />
+Risk management
+</li>
+<li className="flex items-center">
+<ArrowRight className="h-4 w-4 mr-2 text-purple-600" />
+Portfolio hedging
+</li>
+</ul>
+</CardContent>
+<CardFooter>
+<Button variant="link" className="pl-0 text-purple-600 dark:text-purple-400">
+Start Learning <ChevronRight className="ml-1 h-4 w-4" />
+</Button>
+</CardFooter>
+</Card>
+</div>
+</section>
+
+{/* Practice Section */}
+<section id="practice" className={`${activeTab !== 'practice' ? 'hidden' : ''} mb-16`}>
+<h2 className="text-2xl font-bold mb-8">Practice Trading</h2>
+<div className="grid md:grid-cols-2 gap-8">
+{/* Simulator */}
+<Card className="schwab-card">
+<CardHeader>
+<CardTitle>Trading Simulator</CardTitle>
+<CardDescription>
+Practice trading with virtual money in real market conditions
+</CardDescription>
+</CardHeader>
+<CardContent>
+<div className="bg-gray-200 dark:bg-gray-700 rounded-lg aspect-video flex items-center justify-center">
+<Play className="h-12 w-12 text-gray-400" />
+</div>
+</CardContent>
+<CardFooter>
+<Button className="schwab-blue-btn w-full">
+Launch Simulator
+</Button>
+</CardFooter>
+</Card>
+
+{/* Challenges */}
+<Card className="schwab-card">
+<CardHeader>
+<CardTitle>Trading Challenges</CardTitle>
+<CardDescription>
+Test your skills with these real-world scenarios
+</CardDescription>
+</CardHeader>
+<CardContent>
+<div className="space-y-4">
+<div className="p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+<h4 className="font-medium">Market Downturn</h4>
+<p className="text-sm text-gray-600 dark:text-gray-400">
+Learn how to protect your portfolio during volatility
+</p>
+</div>
+<div className="p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+<h4 className="font-medium">Earnings Season</h4>
+<p className="text-sm text-gray-600 dark:text-gray-400">
+Navigate the opportunities and risks of earnings reports
+</p>
+</div>
+</div>
+</CardContent>
+<CardFooter>
+<Button variant="outline" className="schwab-outline-btn w-full">
+View All Challenges
+</Button>
+</CardFooter>
+</Card>
+</div>
+</section>
+
+{/* Resources Section */}
+<section id="resources" className={`${activeTab !== 'resources' ? 'hidden' : ''} mb-16`}>
+<h2 className="text-2xl font-bold mb-8">Learning Resources</h2>
+<Tabs defaultValue="videos" className="w-full">
+<TabsList className="grid w-full grid-cols-3">
+<TabsTrigger value="videos">Videos</TabsTrigger>
+<TabsTrigger value="articles">Articles</TabsTrigger>
+<TabsTrigger value="webinars">Webinars</TabsTrigger>
+</TabsList>
+<TabsContent value="videos">
+<div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+{[1, 2, 3].map((item) => (
+<Card key={`video-${item}`} className="schwab-card">
+<CardContent className="p-0">
+<div className="bg-gray-200 dark:bg-gray-700 rounded-t-lg aspect-video flex items-center justify-center">
+<Play className="h-12 w-12 text-gray-400" />
+</div>
+<div className="p-4">
+<h3 className="font-medium mb-2">Trading Strategy #{item}</h3>
+<p className="text-sm text-gray-600 dark:text-gray-400">
+Learn effective techniques for identifying market opportunities
+</p>
+</div>
+</CardContent>
+</Card>
+))}
+</div>
+</TabsContent>
+<TabsContent value="articles">
+<div className="grid md:grid-cols-2 gap-6 mt-6">
+{[1, 2].map((item) => (
+<Card key={`article-${item}`} className="schwab-card">
+<CardContent className="p-4">
+<div className="flex items-start space-x-4">
+<div className="bg-gray-200 dark:bg-gray-700 rounded w-16 h-16 flex-shrink-0"></div>
+<div>
+<h3 className="font-medium mb-1">Market Analysis: {item}</h3>
+<p className="text-sm text-gray-600 dark:text-gray-400">
+In-depth look at current market conditions and trends
+</p>
+</div>
+</div>
+</CardContent>
+</Card>
+))}
+</div>
+</TabsContent>
+<TabsContent value="webinars">
+<div className="grid md:grid-cols-2 gap-6 mt-6">
+<Card className="schwab-card">
+<CardHeader>
+<CardTitle>Upcoming Webinars</CardTitle>
+<CardDescription>
+Join our live educational sessions
+</CardDescription>
+</CardHeader>
+<CardContent>
+<div className="space-y-4">
+<div className="p-4 border rounded-lg">
+<h4 className="font-medium">Options Trading 101</h4>
+<p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+Thursday, June 15 • 2:00 PM ET
+</p>
+<Button variant="outline" className="schwab-outline-btn w-full">
+Register
+</Button>
+</div>
+</div>
+</CardContent>
+</Card>
+<Card className="schwab-card">
+<CardHeader>
+<CardTitle>Webinar Archive</CardTitle>
+<CardDescription>
+Watch recordings of past sessions
+</CardDescription>
+</CardHeader>
+<CardContent>
+<div className="space-y-4">
+<div className="p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+<h4 className="font-medium">Technical Analysis Deep Dive</h4>
+<p className="text-sm text-gray-600 dark:text-gray-400">
+Recorded May 2023
+</p>
+</div>
+</div>
+</CardContent>
+</Card>
+</div>
+</TabsContent>
+</Tabs>
+</section>
+
+{/* Call to Action */}
+<section className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-8 text-center">
+<div className="max-w-2xl mx-auto">
+<h3 className="text-2xl font-bold mb-4">Ready to take your trading to the next level?</h3>
+<p className="mb-6">
+Join our community of traders and get access to premium educational content.
+</p>
+<div className="flex flex-col sm:flex-row justify-center gap-4">
+<Button className="schwab-blue-btn">
+Get Started
+</Button>
+<Button variant="outline" className="schwab-outline-btn">
+Learn More
+</Button>
+</div>
+</div>
+</section>
+</main>
+
+{/* Footer */}
+<footer className="schwab-footer py-12">
+<div className="container mx-auto px-4">
+<div className="grid md:grid-cols-4 gap-8">
+<div>
+<h4 className="font-bold mb-4">Trading Academy</h4>
+<p className="text-sm text-gray-600 dark:text-gray-400">
+Empowering traders through education since 2023.
+</p>
+</div>
+<div>
+<h4 className="font-bold mb-4">Learn</h4>
+<ul className="space-y-2 text-sm">
+<li><button onClick={() => handleTabChange('learn')} className="hover:underline">Courses</button></li>
+<li><button onClick={() => handleTabChange('practice')} className="hover:underline">Simulator</button></li>
+<li><button onClick={() => handleTabChange('resources')} className="hover:underline">Resources</button></li>
+</ul>
+</div>
+<div>
+<h4 className="font-bold mb-4">Company</h4>
+<ul className="space-y-2 text-sm">
+<li><a href="#" className="hover:underline">About Us</a></li>
+<li><a href="#" className="hover:underline">Careers</a></li>
+<li><a href="#" className="hover:underline">Contact</a></li>
+</ul>
+</div>
+<div>
+<h4 className="font-bold mb-4">Legal</h4>
+<ul className="space-y-2 text-sm">
+<li><a href="#" className="hover:underline">Terms</a></li>
+<li><a href="#" className="hover:underline">Privacy</a></li>
+<li><a href="#" className="hover:underline">Disclosures</a></li>
+</ul>
+</div>
+</div>
+<div className="border-t border-gray-200 dark:border-gray-700 mt-8 pt-8 text-center text-sm text-gray-500 dark:text-gray-400">
+© 2023 Trading Academy. All rights reserved.
+</div>
+</div>
+</footer>
+
+{/* Video Modal (would be implemented) */}
+{videoModalOpen && (
+<div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center">
+<div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-4xl aspect-video relative">
+<button
+onClick={() => setVideoModalOpen(false)}
+    className="absolute -top-10 right-0 text-white"
+    >
+    Close
+    </button>
+    <div className="w-full h-full flex items-center justify-center">
+    <Play className="h-16 w-16 text-gray-400" />
+    </div>
+    </div>
+    </div>
+)}
+</div>
+)
+}
+import { useState, useEffect } from 'react';
+import { Button } from "/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "/components/ui/card";
+import { Sun, Moon, ChevronRight, Play, BookOpen, BarChart2, Users, Shield } from "lucide-react";
+import { Switch } from "/components/ui/switch";
+import { Label } from "/components/ui/label";
+import Chart from 'chart.js/auto';
+
+export default function StockMarketApp() {
+const [darkMode, setDarkMode] = useState(false);
+const [currentSection, setCurrentSection] = useState('home');
+const [storyStep, setStoryStep] = useState(1);
+const [iphoneCount, setIphoneCount] = useState(0);
+const [coins, setCoins] = useState(0);
+const [stockPrice, setStockPrice] = useState(100);
+const [cash, setCash] = useState(1000);
+const [stocksOwned, setStocksOwned] = useState(0);
+const [popupOpen, setPopupOpen] = useState(false);
+const [popupContent, setPopupContent] = useState({ title: '', description: '' });
+const [mentorQuestion, setMentorQuestion] = useState('');
+const [mentorResponse, setMentorResponse] = useState('');
+
+// Toggle dark mode
+useEffect(() => {
+    if (darkMode) {
+document.documentElement.classList.add('dark');
+} else {
+      document.documentElement.classList.remove('dark');
+  }
+}, [darkMode]);
+
+// Story mode navigation
+const nextStoryStep = (step: number) => {
+setStoryStep(step);
+};
+
+// Show popup for ethical issues
+const showPopup = (title: string, description: string) => {
+setPopupContent({ title, description });
+setPopupOpen(true);
+};
+
+// iPhone production game functions
+const produceIPhone = () => {
+setIphoneCount(prev => prev + 1);
+setCoins(prev => prev + 5);
+};
+
+    const sellIPhones = () => {
+    if (iphoneCount > 0) {
+setCoins(prev => prev + iphoneCount * 10);
+setIphoneCount(0);
+}
+};
+
+// Stock market simulator functions
+const buyStock = () => {
+    if (cash >= stockPrice) {
+setCash(prev => prev - stockPrice);
+setStocksOwned(prev => prev + 1);
+}
+};
+
+    const sellStock = () => {
+    if (stocksOwned > 0) {
+setCash(prev => prev + stockPrice);
+setStocksOwned(prev => prev - 1);
+}
+};
+
+// AI Mentor function
+const askMentor = () => {
+// In a real app, you would call an API here
+setMentorResponse(`Answer to "${mentorQuestion}" would appear here from an AI service`);
+};
+
+    return (
+    <div className={`min-h-screen ${darkMode ? 'dark bg-gray-900' : 'bg-white'}`}>
+                                                                                 {/* Header with theme toggle */}
+<header className="p-4 flex justify-between items-center">
+<h1 className="text-xl font-bold">Stock Market Learning App</h1>
+<div className="flex items-center space-x-2">
+<Sun className="h-5 w-5" />
+<Switch
+id="dark-mode"
+checked={darkMode}
+    onCheckedChange={setDarkMode}
+/>
+<Moon className="h-5 w-5" />
+<Label htmlFor="dark-mode">Switch Theme</Label>
+</div>
+</header>
+
+{/* Main content */}
+<main className="container mx-auto px-4 py-8">
+{/* Home Screen */}
+{currentSection === 'home' && (
+<Card>
+<CardHeader>
+<CardTitle>Welcome to the Stock Market Learning App</CardTitle>
+</CardHeader>
+<CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+<Button onClick={() => setCurrentSection('ethical-issues')}>Ethical Issues</Button>
+<Button onClick={() => setCurrentSection('employment-impact')}>Employment Impact</Button>
+<Button onClick={() => setCurrentSection('key-takeaways')}>Key Takeaways</Button>
+<Button onClick={() => setCurrentSection('story-mode')}>Story Mode</Button>
+<Button onClick={() => setCurrentSection('game-mode')}>Game Mode</Button>
+<Button onClick={() => setCurrentSection('test-your-knowledge')}>Test Your Knowledge</Button>
+<Button onClick={() => setCurrentSection('summary')}>Summary</Button>
+<Button onClick={() => setCurrentSection('ai-mentor')}>AI Mentor</Button>
+<Button onClick={() => setCurrentSection('market-crashes')}>Market Crashes</Button>
+<Button onClick={() => setCurrentSection('stock-myths')}>Stock Market Myths</Button>
+<Button onClick={() => setCurrentSection('etfs-vs-mutuals')}>ETFs vs. Mutual Funds</Button>
+</CardContent>
+</Card>
+)}
+
+{/* Story Mode */}
+{currentSection === 'story-mode' && (
+<Card>
+<CardHeader>
+<CardTitle>Story Mode</CardTitle>
+<CardDescription>Embark on an interactive journey to build your stock market skills!</CardDescription>
+</CardHeader>
+<CardContent>
+{storyStep === 1 && (
+<div className="space-y-4">
+<h3 className="text-lg font-medium">Step 1: Starting Out</h3>
+<p>You have $10,000 to invest. Choose wisely!</p>
+<div className="flex gap-4">
+<Button onClick={() => nextStoryStep(2)}>Invest in a Tech Company</Button>
+<Button onClick={() => nextStoryStep(3)}>Invest in Renewable Energy</Button>
+</div>
+</div>
+)}
+{/* Add other story steps similarly */}
+<Button onClick={() => setCurrentSection('home')} className="mt-4">Back to Home</Button>
+</CardContent>
+</Card>
+)}
+
+{/* Game Mode */}
+{currentSection === 'game-mode' && (
+<Card>
+<CardHeader>
+<CardTitle>Game Mode</CardTitle>
+</CardHeader>
+<CardContent className="space-y-8">
+<div>
+<h3 className="text-lg font-medium mb-4">iPhone Production Game</h3>
+<div className="grid grid-cols-2 gap-4">
+<div>
+<p>iPhones Produced: {iphoneCount}</p>
+<p>Coins: {coins}</p>
+</div>
+<div className="space-y-2">
+<Button onClick={produceIPhone}>Produce an iPhone</Button>
+<Button onClick={sellIPhones}>Sell iPhones</Button>
+</div>
+</div>
+</div>
+
+<div>
+<h3 className="text-lg font-medium mb-4">Stock Market Simulator</h3>
+<div className="grid grid-cols-2 gap-4">
+<div>
+<p>Stock Price: ${stockPrice.toFixed(2)}</p>
+<p>Cash: ${cash.toFixed(2)}</p>
+<p>Stocks Owned: {stocksOwned}</p>
+</div>
+<div className="space-y-2">
+<Button onClick={buyStock}>Buy Stock</Button>
+<Button onClick={sellStock}>Sell Stock</Button>
+</div>
+</div>
+</div>
+<Button onClick={() => setCurrentSection('home')}>Back to Home</Button>
+</CardContent>
+</Card>
+)}
+
+{/* Market Crashes Section */}
+{currentSection === 'market-crashes' && (
+<Card>
+<CardHeader>
+<CardTitle>Historical Market Crashes</CardTitle>
+</CardHeader>
+<CardContent>
+<ul className="space-y-4">
+<li>
+<strong>1929 - The Great Depression:</strong> Caused by rampant speculation and buying stocks on borrowed money.
+<p className="text-sm italic">What to do: Don't over-leverage your investments.</p>
+</li>
+{/* Add other crashes similarly */}
+</ul>
+<Button onClick={() => setCurrentSection('home')} className="mt-4">Back to Home</Button>
+</CardContent>
+</Card>
+)}
+
+{/* AI Mentor Section */}
+{currentSection === 'ai-mentor' && (
+<Card>
+<CardHeader>
+<CardTitle>AI Stock Mentor</CardTitle>
+</CardHeader>
+<CardContent className="space-y-4">
+<div className="flex gap-2">
+<input
+type="text"
+value={mentorQuestion}
+    onChange={(e) => setMentorQuestion(e.target.value)}
+    placeholder="Ask your question..."
+    className="flex-1 border rounded px-3 py-2"
+    />
+    <Button onClick={askMentor}>Ask</Button>
+</div>
+{mentorResponse && (
+<div className="p-4 bg-gray-100 dark:bg-gray-800 rounded">
+<p>{mentorResponse}</p>
+</div>
+)}
+<Button onClick={() => setCurrentSection('home')}>Back to Home</Button>
+</CardContent>
+</Card>
+)}
+
+{/* Add other sections similarly */}
+</main>
+
+{/* Popup for ethical issues */}
+{popupOpen && (
+<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+<Card className="w-full max-w-md">
+<CardHeader className="flex flex-row justify-between items-center">
+<CardTitle>{popupContent.title}</CardTitle>
+<button onClick={() => setPopupOpen(false)} className="text-gray-500 hover:text-gray-700">
+&times;
+</button>
+</CardHeader>
+<CardContent>
+<p>{popupContent.description}</p>
+</CardContent>
+</Card>
+</div>
+)}
+</div>
+);
+}
