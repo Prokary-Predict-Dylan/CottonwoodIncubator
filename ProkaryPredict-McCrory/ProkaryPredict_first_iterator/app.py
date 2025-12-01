@@ -9,88 +9,152 @@ import io
 import base64
 import time
 
-st.set_page_config(page_title="ProkaryPredict — Block Converter", layout="wide")
+st.set_page_config(page_title="ProkaryPredict First Iterator", layout="wide")
 
-st.title("ProkaryPredict — Block Code Visualizer (First Iterator)")
+st.title("ProkaryPredict — (First Iterator)")
+
+# -----------------------------------------------------------
+# Sidebar
+# -----------------------------------------------------------
 
 with st.sidebar:
     st.header("Upload files")
-    uploaded = st.file_uploader("Upload GenBank (.gb/.gbk) / FASTA / SBML (.xml/.sbml)", accept_multiple_files=False)
+    uploaded = st.file_uploader(
+        "Upload GenBank (.gb/.gbk) / FASTA / SBML (.xml/.sbml)", 
+        accept_multiple_files=False
+    )
     st.markdown("---")
     st.header("Export")
     export_name = st.text_input("PDF filename (without ext)", value="prokarypredict_report")
+    
     if st.button("Export PDF"):
-        # FIX: properly set session state flag
         st.session_state["export_request"] = time.time()
 
 st.info("Upload a GenBank, FASTA, or SBML file. Parsed features will be converted to blocks and displayed.")
 
+# -----------------------------------------------------------
+# File Handling
+# -----------------------------------------------------------
+
 if uploaded is not None:
-    # identify file type
+
     fn = uploaded.name.lower()
     content = uploaded.read()
+
     try:
+        # ------------------------------
+        # GenBank
+        # ------------------------------
         if fn.endswith((".gb", ".gbk", ".genbank")):
             feature_list = parse_genbank(io.BytesIO(content))
             st.success(f"Parsed GenBank: {len(feature_list)} features found")
+
+        # ------------------------------
+        # FASTA
+        # ------------------------------
         elif fn.endswith((".fa", ".fasta")):
             feature_list = parse_fasta(io.BytesIO(content))
             st.success(f"Parsed FASTA: {len(feature_list)} sequences")
+
+        # ------------------------------
+        # SBML
+        # ------------------------------
         elif fn.endswith((".xml", ".sbml")) or b"<sbml" in content[:200].lower():
+
             sbml_res = parse_sbml(io.BytesIO(content))
-            feature_list = [{"id": g["id"], "name": g["name"], "length": 100, "product": "", "start": idx*200, "end": idx*200+100} 
-                            for idx,g in enumerate(sbml_res["genes"])]
+
+            feature_list = []
+            for idx, g in enumerate(sbml_res["genes"]):
+                feature_list.append({
+                    "id": g["id"],
+                    "name": g["name"],
+                    "product": g.get("product", ""),  # KEEP functional text
+                    "auto_categories": sbml_res["auto_categories"],  # KEEP model keywords
+                    "start": idx * 200,
+                    "end": idx * 200 + 100,
+                    "length": 100,
+                    "source": "sbml",
+                })
+
             st.success(f"Parsed SBML: {len(feature_list)} genes (mapped to blocks)")
+
+        # ------------------------------
+        # Unknown file → heuristics
+        # ------------------------------
         else:
-            st.warning("Unknown file extension; attempting heuristics.")
+            st.warning("Unknown extension; attempting heuristics...")
             try:
                 feature_list = parse_genbank(io.BytesIO(content))
                 st.success(f"Parsed GenBank heuristically: {len(feature_list)} features found")
             except Exception:
                 try:
                     feature_list = parse_fasta(io.BytesIO(content))
-                    st.success(f"Parsed FASTA heuristically: {len(feature_list)}")
+                    st.success(f"Parsed FASTA heuristically: {len(feature_list)} sequences")
                 except Exception:
-                    st.error("Could not parse file. Please upload a valid GenBank, FASTA, or SBML file.")
+                    st.error("Could not parse file. Upload a valid GenBank, FASTA, or SBML file.")
                     feature_list = []
+
     except Exception as e:
         st.error(f"Parsing error: {e}")
         feature_list = []
 
-    # convert features -> blocks
+    # -----------------------------------------------------------
+    # Block Conversion
+    # -----------------------------------------------------------
+
     blocks = features_to_blocks(feature_list)
 
-    # category filter sidebar
+    # -----------------------------------------------------------
+    # Category Filter
+    # -----------------------------------------------------------
+
     categories = sorted(set(b["category"] for b in blocks))
-    sel_cats = st.sidebar.multiselect("Show categories", options=categories, default=categories)
+    sel_cats = st.sidebar.multiselect(
+        "Show categories", options=categories, default=categories
+    )
     filtered_blocks = [b for b in blocks if b["category"] in sel_cats]
 
-    # Plotly visualization
+    # -----------------------------------------------------------
+    # Visualization
+    # -----------------------------------------------------------
+
     st.subheader("Block visualization")
     fig = blocks_to_figure(filtered_blocks)
     st.plotly_chart(fig, use_container_width=True)
 
-    # JSON export
+    # -----------------------------------------------------------
+    # JSON Export
+    # -----------------------------------------------------------
+
     with st.expander("Block data (JSON)"):
         st.json(filtered_blocks)
 
-    # Blockly workspace
+    # -----------------------------------------------------------
+    # Blockly Workspace
+    # -----------------------------------------------------------
+
     st.subheader("Block workspace (visual code)")
+
     blockly_xml_blocks = ""
     for b in filtered_blocks:
-        blockly_xml_blocks += f'<block type="text" x="20" y="20"><field name="TEXT">{b["label"]}</field></block>'
-        
+        blockly_xml_blocks += (
+            f'<block type="text" x="20" y="20"><field name="TEXT">{b["label"]}</field></block>'
+        )
+
     blockly_html = f"""
     <!doctype html>
     <html>
       <head>
         <meta charset="utf-8">
         <script src="https://unpkg.com/blockly/blockly.min.js"></script>
-        <style> html, body {{ height: 100%; margin: 0; }} #blocklyDiv {{ height: 480px; width: 100%; }}</style>
+        <style>
+            html, body {{ height: 100%; margin: 0; }}
+            #blocklyDiv {{ height: 480px; width: 100%; }}
+        </style>
       </head>
       <body>
         <div id="blocklyDiv"></div>
-        <xml id="toolbox" style="display: none">
+        <xml id="toolbox" style="display:none">
           <category name="Blocks">
             <block type="controls_if"></block>
             <block type="logic_compare"></block>
@@ -100,7 +164,7 @@ if uploaded is not None:
         </xml>
         <script>
           var workspace = Blockly.inject('blocklyDiv',
-            {{toolbox: document.getElementById('toolbox')}});
+            {{ toolbox: document.getElementById('toolbox') }});
           var xmlText = '<xml>{blockly_xml_blocks}</xml>';
           var xml = Blockly.Xml.textToDom(xmlText);
           Blockly.Xml.domToWorkspace(xml, workspace);
@@ -108,23 +172,31 @@ if uploaded is not None:
       </body>
     </html>
     """
+
     st.components.v1.html(blockly_html, height=520, scrolling=True)
 
-    # download JSON
+    # -----------------------------------------------------------
+    # Download JSON Button
+    # -----------------------------------------------------------
+
     if st.button("Download blocks JSON"):
         j = json.dumps(filtered_blocks, indent=2)
         b64 = base64.b64encode(j.encode()).decode()
         href = f'<a href="data:application/json;base64,{b64}" download="{uploaded.name}_blocks.json">Download blocks JSON</a>'
         st.markdown(href, unsafe_allow_html=True)
 
-    # PDF export
+    # -----------------------------------------------------------
+    # PDF Export
+    # -----------------------------------------------------------
+
     if st.session_state.get("export_request"):
         fname = f"{export_name}.pdf"
         export_blocks_pdf(fname, filtered_blocks, metadata={"source_file": uploaded.name})
+
         with open(fname, "rb") as f:
             data = f.read()
             b64 = base64.b64encode(data).decode()
             href = f'<a href="data:application/pdf;base64,{b64}" download="{fname}">Download PDF report</a>'
             st.markdown(href, unsafe_allow_html=True)
-        # reset export_request
+
         st.session_state["export_request"] = None

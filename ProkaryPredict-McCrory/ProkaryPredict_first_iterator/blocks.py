@@ -1,3 +1,4 @@
+# Color system
 DEFAULT_COLORS = {
     "core_metabolism": "#bed5d6",
     "energy_systems": "#c1d6be",
@@ -7,31 +8,55 @@ DEFAULT_COLORS = {
     "other_functions": "#c38a71"
 }
 
+# Category priority (for SBML auto_categories)
+CATEGORY_PRIORITY = [
+    "regulation",
+    "transport",
+    "biosynthesis",
+    "core_metabolism",
+    "energy_systems",
+    "other_functions"
+]
+
+# Mapping reactions → functional categories
+REACTION_KEYWORDS = {
+    "core_metabolism": ["glycolysis", "tca cycle", "calvin cycle"],
+    "energy_systems": ["photosynthesis", "respiration", "atp synthase"],
+    "biosynthesis": ["amino acid", "nucleotide", "lipid"],
+    "regulation": ["transcription factor", "tf"],
+    "transport": ["membrane transporter", "transporter", "channel", "pump"]
+}
+
 def categorize_feature(record):
+    """
+    Categorize a gene/feature based on:
+      1) SBML auto_categories if present
+      2) Reactions it catalyzes (REACTION_KEYWORDS mapping)
+      3) Fallback: other_functions
+    """
     prod = (record.get("product") or "").lower()
     name = (record.get("name") or "").lower()
+    text = f"{prod} {name}"
 
-    # Core Metabolism
-    if any(k in prod for k in ["dehydrogenase", "kinase", "synthetase", "reductase", "metabolic"]):
-        return "core_metabolism"
+    # 1) SBML auto_categories
+    auto_cats = record.get("auto_categories")
+    if auto_cats:
+        for category in CATEGORY_PRIORITY:
+            keywords = auto_cats.get(category, set())
+            for k in keywords:
+                if k.lower() in text:
+                    return category
 
-    # Energy Systems
-    if any(k in prod + name for k in ["atp synthase", "electron transport", "glycolysis", "respiration", "oxidase", "hydrogenase"]):
-        return "energy_systems"
+    # 2) Map reactions → categories
+    reactions = record.get("reactions", [])
+    for r in reactions:
+        rname = r.lower()
+        for cat, keys in REACTION_KEYWORDS.items():
+            for k in keys:
+                if k in rname:
+                    return cat
 
-    # Biosynthesis
-    if any(k in prod + name for k in ["ribosomal", "capsid", "flagellin", "polyketide", "amino acid"]):
-        return "biosynthesis"
-
-    # Regulation
-    if any(k in name for k in ["regulator", "transcription", "sigma", "tf", "repressor", "activator"]):
-        return "regulation"
-
-    # Transport
-    if any(k in prod + name for k in ["transporter", "channel", "pump"]):
-        return "transport"
-
-    # Other functions
+    # 3) Fallback
     return "other_functions"
 
 def assign_color(category):
@@ -39,7 +64,6 @@ def assign_color(category):
 
 def features_to_blocks(features):
     blocks = []
-    # Determine if features have coordinates
     have_coords = all("start" in f and "end" in f for f in features)
 
     if have_coords:
@@ -57,7 +81,6 @@ def features_to_blocks(features):
                 "metadata": f
             })
     else:
-        # sequential layout if no coordinates
         pos = 0
         for f in features:
             length = f.get("length", 100)
@@ -73,5 +96,6 @@ def features_to_blocks(features):
                 "shape": "rect",
                 "metadata": f
             })
-            pos += length + int(length * 0.1)  # small gap between blocks
+            pos += length + int(length * 0.1)
+
     return blocks
