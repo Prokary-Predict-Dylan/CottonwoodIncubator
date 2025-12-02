@@ -13,77 +13,119 @@ def hex_to_rgb_fraction(hexcolor):
 
 def export_blocks_pdf(blocks, metadata=None):
     """
-    Returns a byte string containing the PDF.
-    Blocks are stacked vertically to avoid overlapping labels.
+    Fully safe, readable PDF export with:
+        • stacked rows
+        • automatic page breaks
+        • non-overlapping labels
+        • in-memory return
     """
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter
 
-    # ---- Title ----
-    c.setFont("Helvetica-Bold", 16)
-    c.drawString(1 * inch, height - 1 * inch, "ProkaryPredict — Block Report")
+    def new_page():
+        c.showPage()
+        # Title on every new page
+        c.setFont("Helvetica-Bold", 16)
+        c.drawString(1*inch, height - 1*inch, "ProkaryPredict — Block Report")
+        c.setFont("Helvetica", 10)
+        return height - 1.3*inch
 
-    # ---- Metadata ----
-    c.setFont("Helvetica", 10)
-    y = height - 1.3 * inch
+    # First page header
+    y = new_page()
+
+    # Metadata section
     if metadata:
         for k, v in metadata.items():
-            c.drawString(1 * inch, y, f"{k}: {v}")
+            c.drawString(1*inch, y, f"{k}: {v}")
             y -= 12
     y -= 20
 
-    # ---- Draw blocks ----
-    if blocks:
-        total_len = max(b["end"] for b in blocks)
-    else:
-        total_len = 1
+    # Nothing to draw
+    if not blocks:
+        c.drawString(1*inch, y, "No blocks available.")
+        c.save()
+        buffer.seek(0)
+        return buffer.getvalue()
 
+    # Compute horizontal scaling
+    total_len = max(b["end"] for b in blocks)
     x_margin = 1 * inch
-    block_height = 20
-    spacing = 10  # vertical space between stacked blocks
+    block_height = 18
+    row_spacing = 10
     scale = (width - 2 * x_margin) / total_len
 
-    # Stack blocks vertically in rows to avoid overlap
-    current_row = 0
-    row_positions = {}
+    # Function to break pages when needed
+    def ensure_space(rows_needed=1):
+        nonlocal y
+        if y - rows_needed*(block_height + row_spacing + 15) < 1*inch:
+            y = new_page()
 
-    for b in blocks:
-        start = b["start"]
-        end = b["end"]
+    # Row placement registry to avoid overlaps
+    row_positions = {}   # row → list of (start, end)
+    row_heights = []      # for tracking drawing positions
 
-        # check for overlapping blocks in x-axis
+    for block in blocks:
+        start = block["start"]
+        end = block["end"]
+
+        # Determine row by collision-checking
         row = 0
         while True:
-            occupied = False
-            for (s, e, r) in row_positions.get(row, []):
+            if row not in row_positions:
+                row_positions[row] = []
+                break
+            collision = False
+            for (s, e) in row_positions[row]:
                 if not (end < s or start > e):
-                    occupied = True
+                    collision = True
                     break
-            if not occupied:
+            if not collision:
                 break
             row += 1
 
-        if row not in row_positions:
-            row_positions[row] = []
-        row_positions[row].append((start, end, row))
+        row_positions[row].append((start, end))
 
-        y_box = y - (row * (block_height + spacing))
+    # Sort rows for consistent top-to-bottom output
+    sorted_rows = sorted(row_positions.keys())
 
-        # Draw rectangle
-        w = max(6, (end - start) * scale)
-        r, g, b_ = hex_to_rgb_fraction(b["color"])
-        c.setFillColorRGB(r, g, b_)
-        c.rect(x_margin + (start * scale), y_box, w, block_height, fill=1, stroke=0)
+    # Draw rows
+    for row in sorted_rows:
+        blocks_in_row = [b for b in blocks if any(
+            b["start"] == s and b["end"] == e
+            for (s, e) in row_positions[row]
+        )]
 
-        # Draw label above rectangle
-        c.setFillColorRGB(0, 0, 0)
-        c.setFont("Helvetica", 8)
-        c.drawString(x_margin + (start * scale), y_box + block_height + 2, b["label"])
+        # Space check
+        ensure_space(1)
 
-    # Finish PDF
-    c.showPage()
+        row_y = y - (block_height + row_spacing)
+
+        # Draw each block in this row
+        for b in blocks_in_row:
+            start = b["start"]
+            end = b["end"]
+            w = max(6, (end - start) * scale)
+
+            color_r, color_g, color_b = hex_to_rgb_fraction(b["color"])
+            c.setFillColorRGB(color_r, color_g, color_b)
+            c.rect(x_margin + (start * scale), row_y, w, block_height, fill=1, stroke=0)
+
+            # Label appears above rectangle
+            c.setFillColorRGB(0, 0, 0)
+            label = b["label"]
+
+            # Truncate labels that exceed block width
+            max_chars = int(w / 5)
+            if len(label) > max_chars and max_chars > 3:
+                label = label[:max_chars - 3] + "..."
+
+            c.setFont("Helvetica", 8)
+            c.drawString(x_margin + (start * scale), row_y + block_height + 2, label)
+
+        # Move down for next row
+        y = row_y - 15
+
     c.save()
     buffer.seek(0)
     return buffer.getvalue()
-
