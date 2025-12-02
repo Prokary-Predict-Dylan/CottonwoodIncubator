@@ -10,13 +10,11 @@ import base64
 import time
 
 st.set_page_config(page_title="ProkaryPredict First Iterator", layout="wide")
-
 st.title("ProkaryPredict — (First Iterator)")
 
 # -----------------------------------------------------------
 # Sidebar
 # -----------------------------------------------------------
-
 with st.sidebar:
     st.header("Upload files")
     uploaded = st.file_uploader(
@@ -35,11 +33,10 @@ st.info("Upload a GenBank, FASTA, or SBML file. Parsed features will be converte
 # -----------------------------------------------------------
 # File Handling
 # -----------------------------------------------------------
-
 if uploaded is not None:
-
     fn = uploaded.name.lower()
     content = uploaded.read()
+    feature_list = []
 
     try:
         # ------------------------------
@@ -56,27 +53,28 @@ if uploaded is not None:
             feature_list = parse_fasta(io.BytesIO(content))
             st.success(f"Parsed FASTA: {len(feature_list)} sequences")
 
-      elif fn.endswith((".xml", ".sbml")) or b"<sbml" in content[:200].lower():
+        # ------------------------------
+        # SBML
+        # ------------------------------
+        elif fn.endswith((".xml", ".sbml")) or b"<sbml" in content[:200].lower():
+            sbml_res = parse_sbml(io.BytesIO(content))
 
-    sbml_res = parse_sbml(io.BytesIO(content))
+            # Store COBRA model in session for PDF export
+            st.session_state['model'] = sbml_res["cobra_model"]  # ensure parse_sbml returns COBRA model
 
-    # Store COBRA model in session for PDF export
-    st.session_state['model'] = sbml_res["cobra_model"]  # make sure parse_sbml returns the model
-
-    feature_list = []
-    for idx, g in enumerate(sbml_res["genes"]):
-        feature_list.append({
-            "id": g["id"],
-            "name": g["name"],
-            "product": g.get("product", ""),  
-            "auto_categories": sbml_res["auto_categories"],  
-            "start": idx * 200,
-            "end": idx * 200 + 100,
-            "length": 100,
-            "source": "sbml",
-        })
-
-    st.success(f"Parsed SBML: {len(feature_list)} genes (mapped to blocks)")
+            # Build feature list for blocks
+            for idx, g in enumerate(sbml_res["genes"]):
+                feature_list.append({
+                    "id": g["id"],
+                    "name": g["name"],
+                    "product": g.get("product", ""),  
+                    "auto_categories": sbml_res["auto_categories"],  
+                    "start": idx * 200,
+                    "end": idx * 200 + 100,
+                    "length": 100,
+                    "source": "sbml",
+                })
+            st.success(f"Parsed SBML: {len(feature_list)} genes (mapped to blocks)")
 
         # ------------------------------
         # Unknown file → heuristics
@@ -101,13 +99,11 @@ if uploaded is not None:
     # -----------------------------------------------------------
     # Block Conversion
     # -----------------------------------------------------------
-
     blocks = features_to_blocks(feature_list)
 
     # -----------------------------------------------------------
     # Category Filter
     # -----------------------------------------------------------
-
     categories = sorted(set(b["category"] for b in blocks))
     sel_cats = st.sidebar.multiselect(
         "Show categories", options=categories, default=categories
@@ -117,7 +113,6 @@ if uploaded is not None:
     # -----------------------------------------------------------
     # Visualization
     # -----------------------------------------------------------
-
     st.subheader("Block visualization")
     fig = blocks_to_figure(filtered_blocks)
     st.plotly_chart(fig, use_container_width=True)
@@ -125,14 +120,12 @@ if uploaded is not None:
     # -----------------------------------------------------------
     # JSON Export
     # -----------------------------------------------------------
-
     with st.expander("Block data (JSON)"):
         st.json(filtered_blocks)
 
     # -----------------------------------------------------------
     # Blockly Workspace
     # -----------------------------------------------------------
-
     st.subheader("Block workspace (visual code)")
 
     blockly_xml_blocks = ""
@@ -172,20 +165,18 @@ if uploaded is not None:
       </body>
     </html>
     """
-
     st.components.v1.html(blockly_html, height=520, scrolling=True)
 
     # -----------------------------------------------------------
     # Download JSON Button
     # -----------------------------------------------------------
-
     if st.button("Download blocks JSON"):
         j = json.dumps(filtered_blocks, indent=2)
         b64 = base64.b64encode(j.encode()).decode()
         href = f'<a href="data:application/json;base64,{b64}" download="{uploaded.name}_blocks.json">Download blocks JSON</a>'
         st.markdown(href, unsafe_allow_html=True)
 
-   # -----------------------------------------------------------
+# -----------------------------------------------------------
 # PDF Export — Gene → Reaction mapping
 # -----------------------------------------------------------
 if st.session_state.get("export_request") and 'model' in st.session_state:
