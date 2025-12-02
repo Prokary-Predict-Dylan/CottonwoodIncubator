@@ -189,16 +189,19 @@ if uploaded is not None:
     # PDF Export
     # -----------------------------------------------------------
 
-   if st.session_state.get("export_request"):
-    pdf_bytes = export_blocks_pdf(
-        filtered_blocks,
-        metadata={"source_file": uploaded.name}
-    )
+    if st.session_state.get("export_request"):
+        pdf_bytes = export_blocks_pdf(
+            filtered_blocks,
+            metadata={"source_file": uploaded.name}
+        )
 
-    b64 = base64.b64encode(pdf_bytes).decode()
-    fname = f"{export_name}.pdf"
+        b64 = base64.b64encode(pdf_bytes).decode()
+        fname = f"{export_name}.pdf"
 
-    href = f'<a href="data:application/pdf;base64,{b64}" download="{fname}">Download PDF report</a>'
-    st.markdown(href, unsafe_allow_html=True)
+        href = (
+            f'<a href="data:application/pdf;base64,{b64}" '
+            f'download="{fname}">Download PDF report</a>'
+        )
+        st.markdown(href, unsafe_allow_html=True)
 
-    st.session_state["export_request"] = None
+        st.session_state["export_request"] = None
