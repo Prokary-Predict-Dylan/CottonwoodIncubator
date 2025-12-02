@@ -51,6 +51,7 @@ def export_gene_reaction_pdf(model, metadata=None):
         buffer.seek(0)
         return buffer.getvalue()
 
+    # Column setup
     col_widths = [1.5*inch, 1.5*inch, 2.5*inch, 3*inch]
     row_height = 14
     spacing = 4
@@ -68,7 +69,6 @@ def export_gene_reaction_pdf(model, metadata=None):
 
     # Rows
     for idx, row in df.iterrows():
-
         if y < 1*inch:
             y = new_page()
             c.setFont("Helvetica-Bold", 10)
