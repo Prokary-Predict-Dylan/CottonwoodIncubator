@@ -32,7 +32,7 @@ def export_gene_reaction_pdf(model, metadata=None):
     def new_page():
         c.showPage()
         c.setFont("Helvetica-Bold", 16)
-        c.drawString(1*inch, height - 1*inch, "ProkaryPredict — Gene-Reaction Report")
+        c.drawString(1*inch, height - 1*inch, "Export PDF")
         c.setFont("Helvetica", 10)
         return height - 1.3*inch
 
