@@ -49,11 +49,24 @@ def export_blocks_pdf(blocks, metadata=None):
         return buffer.getvalue()
 
     # Compute horizontal scaling
-    total_len = max(b["end"] for b in blocks)
-    x_margin = 1 * inch
-    block_height = 18
-    row_spacing = 10
-    scale = (width - 2 * x_margin) / total_len
+    total_len = max(b["end"] for i, block in enumerate(blocks):
+    # Vertical position: each block gets its own line
+    y_pos = y_start - i * (block_height + spacing)
+
+    # Rectangle
+    w = max(6, (block['end'] - block['start']) * scale)
+    r_col, g_col, b_col = hex_to_rgb_fraction(block['color'])
+    c.setFillColorRGB(r_col, g_col, b_col)
+    c.rect(x_margin + block['start']*scale, y_pos, w, block_height, fill=1, stroke=0)
+
+    # Label above rectangle
+    c.setFillColorRGB(0,0,0)
+    label = block['label']
+    max_chars = int(w / 5)
+    if len(label) > max_chars and max_chars > 3:
+        label = label[:max_chars-3] + "..."
+    c.setFont("Helvetica", 8)
+    c.drawString(x_margin + block['start']*scale, y_pos + block_height + 2, label)
 
     # Function to break pages when needed
     def ensure_space(rows_needed=1):
