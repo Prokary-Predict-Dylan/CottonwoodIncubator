@@ -185,23 +185,29 @@ if uploaded is not None:
         href = f'<a href="data:application/json;base64,{b64}" download="{uploaded.name}_blocks.json">Download blocks JSON</a>'
         st.markdown(href, unsafe_allow_html=True)
 
-    # -----------------------------------------------------------
-    # PDF Export
-    # -----------------------------------------------------------
+   # -----------------------------------------------------------
+# PDF Export — Gene → Reaction mapping
+# -----------------------------------------------------------
+import streamlit as st
+import base64
+from export_pdf import export_gene_reaction_pdf  # Use the rewritten PDF exporter
 
-    if st.session_state.get("export_request"):
-        pdf_bytes = export_blocks_pdf(
-            filtered_blocks,
-            metadata={"source_file": uploaded.name}
-        )
+# Trigger PDF export
+if st.session_state.get("export_request") and 'model' in st.session_state:
+    model = st.session_state['model']  # Your COBRApy model object
+    pdf_bytes = export_gene_reaction_pdf(
+        model,
+        metadata={"source_file": uploaded.name}
+    )
 
-        b64 = base64.b64encode(pdf_bytes).decode()
-        fname = f"{export_name}.pdf"
+    b64 = base64.b64encode(pdf_bytes).decode()
+    fname = f"{export_name}.pdf"
 
-        href = (
-            f'<a href="data:application/pdf;base64,{b64}" '
-            f'download="{fname}">Download PDF report</a>'
-        )
-        st.markdown(href, unsafe_allow_html=True)
+    href = (
+        f'<a href="data:application/pdf;base64,{b64}" '
+        f'download="{fname}">Download Gene-Reaction PDF report</a>'
+    )
+    st.markdown(href, unsafe_allow_html=True)
 
-        st.session_state["export_request"] = None
+    # Reset export request
+    st.session_state["export_request"] = None
