@@ -146,7 +146,6 @@ def parse_sbml(file_like):
                 reaction_text.append(r.name)
             else:
                 reaction_text.append(r.id)
-
             if hasattr(r, "subsystem") and r.subsystem:
                 reaction_text.append(r.subsystem)
 
@@ -169,4 +168,5 @@ def parse_sbml(file_like):
         "source": "sbml"
     } for r in model.reactions]
 
-    return {"genes": genes, "reactions": reactions, "auto_categories": auto_categories}
+    # Add COBRA model for PDF export
+    return {"cobra_model": model, "genes": genes, "reactions": reactions, "auto_categories": auto_categories}
