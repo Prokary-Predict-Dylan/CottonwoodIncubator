@@ -4,7 +4,7 @@ import json
 from parsers import parse_fasta, parse_genbank, parse_sbml
 from blocks import features_to_blocks
 from viz import blocks_to_figure
-from export_pdf import export_blocks_pdf
+from export_pdf import export_gene_reaction_pdf
 import io
 import base64
 import time
@@ -188,13 +188,8 @@ if uploaded is not None:
    # -----------------------------------------------------------
 # PDF Export — Gene → Reaction mapping
 # -----------------------------------------------------------
-import streamlit as st
-import base64
-import export_pdf.py
-
-# Trigger PDF export
 if st.session_state.get("export_request") and 'model' in st.session_state:
-    model = st.session_state['model']  # Your COBRApy model object
+    model = st.session_state['model']
     pdf_bytes = export_gene_reaction_pdf(
         model,
         metadata={"source_file": uploaded.name}
@@ -208,6 +203,4 @@ if st.session_state.get("export_request") and 'model' in st.session_state:
         f'download="{fname}">Download Gene-Reaction PDF report</a>'
     )
     st.markdown(href, unsafe_allow_html=True)
-
-    # Reset export request
     st.session_state["export_request"] = None
