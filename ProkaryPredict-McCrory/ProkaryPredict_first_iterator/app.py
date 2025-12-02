@@ -191,7 +191,7 @@ if st.session_state.get("export_request") and 'model' in st.session_state:
 
     href = (
         f'<a href="data:application/pdf;base64,{b64}" '
-        f'download="{fname}">Download Gene-Reaction PDF report</a>'
+        f'download="{fname}">Download PDF report</a>'
     )
     st.markdown(href, unsafe_allow_html=True)
     st.session_state["export_request"] = None
