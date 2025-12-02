@@ -190,7 +190,7 @@ if uploaded is not None:
 # -----------------------------------------------------------
 import streamlit as st
 import base64
-from export_pdf import export_gene_reaction_pdf  # Use the rewritten PDF exporter
+import export_pdf.py
 
 # Trigger PDF export
 if st.session_state.get("export_request") and 'model' in st.session_state:
