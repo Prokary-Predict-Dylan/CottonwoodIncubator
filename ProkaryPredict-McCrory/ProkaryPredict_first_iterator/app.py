@@ -56,27 +56,27 @@ if uploaded is not None:
             feature_list = parse_fasta(io.BytesIO(content))
             st.success(f"Parsed FASTA: {len(feature_list)} sequences")
 
-        # ------------------------------
-        # SBML
-        # ------------------------------
-        elif fn.endswith((".xml", ".sbml")) or b"<sbml" in content[:200].lower():
+      elif fn.endswith((".xml", ".sbml")) or b"<sbml" in content[:200].lower():
 
-            sbml_res = parse_sbml(io.BytesIO(content))
+    sbml_res = parse_sbml(io.BytesIO(content))
 
-            feature_list = []
-            for idx, g in enumerate(sbml_res["genes"]):
-                feature_list.append({
-                    "id": g["id"],
-                    "name": g["name"],
-                    "product": g.get("product", ""),  # KEEP functional text
-                    "auto_categories": sbml_res["auto_categories"],  # KEEP model keywords
-                    "start": idx * 200,
-                    "end": idx * 200 + 100,
-                    "length": 100,
-                    "source": "sbml",
-                })
+    # Store COBRA model in session for PDF export
+    st.session_state['model'] = sbml_res["cobra_model"]  # make sure parse_sbml returns the model
 
-            st.success(f"Parsed SBML: {len(feature_list)} genes (mapped to blocks)")
+    feature_list = []
+    for idx, g in enumerate(sbml_res["genes"]):
+        feature_list.append({
+            "id": g["id"],
+            "name": g["name"],
+            "product": g.get("product", ""),  
+            "auto_categories": sbml_res["auto_categories"],  
+            "start": idx * 200,
+            "end": idx * 200 + 100,
+            "length": 100,
+            "source": "sbml",
+        })
+
+    st.success(f"Parsed SBML: {len(feature_list)} genes (mapped to blocks)")
 
         # ------------------------------
         # Unknown file → heuristics
