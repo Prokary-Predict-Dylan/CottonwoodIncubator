@@ -18,27 +18,38 @@ CATEGORY_PRIORITY = [
     "other_functions"
 ]
 
-# Mapping reactions → functional categories
-REACTION_KEYWORDS = {
-    "core_metabolism": ["glycolysis", "tca cycle", "calvin cycle"],
-    "energy_systems": ["photosynthesis", "respiration", "atp synthase"],
-    "biosynthesis": ["amino acid", "nucleotide", "lipid"],
-    "regulation": ["transcription factor", "tf"],
-    "transport": ["membrane transporter", "transporter", "channel", "pump"]
+# Mapping reaction products → functional categories
+PRODUCT_KEYWORDS = {
+    "core_metabolism": ["glucose", "pyruvate", "acetyl-CoA", "ATP", "NADH"],
+    "energy_systems": ["ATP", "ADP", "protons", "NADPH", "oxygen"],
+    "biosynthesis": ["amino acid", "nucleotide", "lipid", "fatty acid"],
+    "regulation": ["transcription factor", "regulator"],
+    "transport": ["membrane", "imported", "exported", "pump", "channel"]
 }
 
-def categorize_feature(record):
+
+def categorize_feature_by_products(record):
     """
     Categorize a gene/feature based on:
-      1) SBML auto_categories if present
-      2) Reactions it catalyzes (REACTION_KEYWORDS mapping)
+      1) Reaction products
+      2) SBML auto_categories (if present)
       3) Fallback: other_functions
     """
-    prod = (record.get("product") or "").lower()
-    name = (record.get("name") or "").lower()
-    text = f"{prod} {name}"
+    # Look at reactions and their products
+    reactions = record.get("reactions_detail", [])  # detailed reaction objects or dicts
+    text = ""
+    for r in reactions:
+        # assume r has a 'products' field, list of product names
+        products = r.get("products", [])
+        text += " " + " ".join([p.lower() for p in products])
 
-    # 1) SBML auto_categories
+    # 1) Check products against keywords
+    for cat, keys in PRODUCT_KEYWORDS.items():
+        for k in keys:
+            if k.lower() in text:
+                return cat
+
+    # 2) Fallback to auto_categories if available
     auto_cats = record.get("auto_categories")
     if auto_cats:
         for category in CATEGORY_PRIORITY:
@@ -47,28 +58,25 @@ def categorize_feature(record):
                 if k.lower() in text:
                     return category
 
-    # 2) Map reactions → categories
-    reactions = record.get("reactions", [])
-    for r in reactions:
-        rname = r.lower()
-        for cat, keys in REACTION_KEYWORDS.items():
-            for k in keys:
-                if k in rname:
-                    return cat
-
-    # 3) Fallback
+    # 3) Fallback default
     return "other_functions"
+
 
 def assign_color(category):
     return DEFAULT_COLORS.get(category, DEFAULT_COLORS["other_functions"])
 
+
 def features_to_blocks(features):
+    """
+    Convert feature list into blocks with start/end coordinates and color.
+    Categorization is now based on reaction products.
+    """
     blocks = []
     have_coords = all("start" in f and "end" in f for f in features)
 
     if have_coords:
         for f in features:
-            cat = categorize_feature(f)
+            cat = categorize_feature_by_products(f)
             blocks.append({
                 "id": f.get("id"),
                 "label": f.get("name") or f.get("id"),
@@ -84,7 +92,7 @@ def features_to_blocks(features):
         pos = 0
         for f in features:
             length = f.get("length", 100)
-            cat = categorize_feature(f)
+            cat = categorize_feature_by_products(f)
             blocks.append({
                 "id": f.get("id"),
                 "label": f.get("name") or f.get("id"),
