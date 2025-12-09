@@ -1,5 +1,6 @@
-# blocks.py (refined for evidence-driven classification)
+# blocks.py (EC-based gene categorization)
 from collections import defaultdict
+import re
 
 # Color system
 DEFAULT_COLORS = {
@@ -13,74 +14,104 @@ DEFAULT_COLORS = {
     "non_coding": "#ffffff"
 }
 
-# Reaction → category mapping (expand with real pathways)
-REACTION_TO_CATEGORY = {
-    "glycolysis": "core_metabolism",
-    "tca": "core_metabolism",
-    "photosynthesis": "energy_systems",
-    "respiration": "energy_systems",
-    "lipid biosynthesis": "biosynthesis",
-    "amino acid biosynthesis": "biosynthesis",
-    "transcription": "regulation",
-    "transport": "transport"
+# EC class → functional category mapping
+EC_CATEGORY_MAP = {
+    "1": "core_metabolism",     # Oxidoreductases
+    "2": "biosynthesis",        # Transferases
+    "3": "core_metabolism",     # Hydrolases
+    "4": "core_metabolism",     # Lyases
+    "5": "core_metabolism",     # Isomerases
+    "6": "biosynthesis",        # Ligases
+    "7": "transport"            # Translocases
 }
+
+EC_REGEX = re.compile(r"(\d+)\.\d+\.\d+\.\d+")  # Extracts the EC class number
+
+
+def extract_ec_numbers(f):
+    """
+    Extract EC numbers from a feature record.
+    Handles:
+        - qualifiers: {"EC_number": ["1.1.1.1"]}
+        - direct field: f["ec_number"]
+        - product text containing "(EC 1.1.1.1)"
+    Returns a list of EC numbers.
+    """
+    ecs = set()
+
+    # 1) Qualifiers from GenBank or SBML
+    q = f.get("qualifiers", {})
+    if "EC_number" in q:
+        for ec in q["EC_number"]:
+            ecs.add(ec)
+
+    # 2) Direct field
+    if "ec_number" in f and f["ec_number"]:
+        ecs.add(f["ec_number"])
+
+    # 3) Product string
+    prod = f.get("product", "")
+    matches = EC_REGEX.findall(prod)
+    for m in matches:
+        ecs.add(m)
+
+    return list(ecs)
+
 
 def categorize_feature(f):
     """
-    Assign a functional category to a gene/feature.
-    Non-coding genes get 'non_coding'.
-    Protein-coding genes are categorized by:
-      1. Reactions it catalyzes
-      2. GO terms (if present)
-      3. Domain/motif hints
-      4. Fallback to 'other_functions'
+    Assign category using:
+      1) Non-coding type
+      2) EC-based classification (most accurate)
+      3) Subsystem fallback
+      4) Product-name fallback
+      5) If nothing: other_functions
     """
-    # Non-coding genes
+    # 1) Non-coding check
     if f.get("type") in ("tRNA", "rRNA", "ncRNA"):
         return "non_coding"
 
-    categories = set()
+    # 2) EC-number based categorization
+    ecs = extract_ec_numbers(f)
+    for ec in ecs:
+        ec_class = ec.split(".")[0]
+        if ec_class in EC_CATEGORY_MAP:
+            return EC_CATEGORY_MAP[ec_class]
 
-    # 1) Reaction-based classification
-    for r in f.get("reactions", []):
-        r_lower = r.lower()
-        for key, cat in REACTION_TO_CATEGORY.items():
-            if key in r_lower:
-                categories.add(cat)
+    # 3) Subsystem fallback (SBML models often include this)
+    subsystem = f.get("subsystem", "").lower()
+    if "transport" in subsystem:
+        return "transport"
+    if "biosynth" in subsystem:
+        return "biosynthesis"
+    if "metabolism" in subsystem or "cycle" in subsystem:
+        return "core_metabolism"
+    if "regulation" in subsystem:
+        return "regulation"
 
-    # 2) GO-term based (optional)
-    for go_term in f.get("go_terms", []):
-        go_lower = go_term.lower()
-        if "transport" in go_lower:
-            categories.add("transport")
-        elif "regulator" in go_lower or "kinase" in go_lower:
-            categories.add("regulation")
-        elif "metabolism" in go_lower or "biosynthesis" in go_lower:
-            categories.add("core_metabolism")
-    
-    # 3) Domain hints (optional)
-    for domain in f.get("domains", []):
-        dom_lower = domain.lower()
-        if "transporter" in dom_lower:
-            categories.add("transport")
-        elif "synthase" in dom_lower or "synthetase" in dom_lower:
-            categories.add("biosynthesis")
-        elif "kinase" in dom_lower:
-            categories.add("regulation")
+    # 4) Name / product fallback
+    text = f.get("product", "").lower() + " " + f.get("name", "").lower()
 
-    # 4) Fallback
-    if not categories:
-        categories.add("other_functions")
+    if any(k in text for k in ["transporter", "permease", "channel", "pump"]):
+        return "transport"
+    if any(k in text for k in ["synthase", "synthetase", "ligase"]):
+        return "biosynthesis"
+    if any(k in text for k in ["dehydrogenase", "isomerase", "kinase", "oxidase"]):
+        return "core_metabolism"
+    if any(k in text for k in ["regulator", "repressor", "activator"]):
+        return "regulation"
 
-    return sorted(categories)[0]  # pick one for color mapping
+    # 5) Fallback
+    return "other_functions"
+
 
 def assign_color(category):
     return DEFAULT_COLORS.get(category, DEFAULT_COLORS["unassigned"])
 
+
 def features_to_blocks(features):
     """
-    Convert a list of gene/feature dictionaries to block dicts for plotting.
-    Handles features with or without start/end coordinates.
+    Convert parsed gene features into drawable blocks.
     """
     blocks = []
     have_coords = all("start" in f and "end" in f for f in features)
