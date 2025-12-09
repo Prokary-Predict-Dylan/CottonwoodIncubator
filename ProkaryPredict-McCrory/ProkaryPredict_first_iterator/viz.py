@@ -1,7 +1,7 @@
 # viz.py
 import plotly.graph_objects as go
 
-def blocks_to_genome_figure(blocks, genome_length=None):
+def blocks_to_figure(blocks, genome_length=None):
     """
     Creates a linear genome visualization:
       - X-axis = genomic coordinates
