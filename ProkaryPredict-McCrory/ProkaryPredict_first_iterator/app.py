@@ -123,49 +123,65 @@ if uploaded is not None:
     with st.expander("Block data (JSON)"):
         st.json(filtered_blocks)
 
-    # -----------------------------------------------------------
-    # Blockly Workspace
-    # -----------------------------------------------------------
-    st.subheader("Block workspace (visual code)")
+st.subheader("Block workspace (visual code)")
 
-    blockly_xml_blocks = ""
-    for b in filtered_blocks:
-        blockly_xml_blocks += (
-            f'<block type="text" x="20" y="20"><field name="TEXT">{b["label"]}</field></block>'
-        )
+# Generate blocks XML
+blockly_xml_blocks = ""
+previous_block_id = None
+for i, gene in enumerate(filtered_blocks):
+    block_id = f"gene_{i}"
+    block_xml = f'<block type="gene_block" id="{block_id}">'
+    block_xml += f'<field name="GENE">{gene["label"]}</field>'
+    if previous_block_id:
+        block_xml += f'<next><block type="gene_block" id="{block_id}_next"></block></next>'
+    block_xml += "</block>"
+    blockly_xml_blocks += block_xml
+    previous_block_id = block_id
 
-    blockly_html = f"""
-    <!doctype html>
-    <html>
-      <head>
-        <meta charset="utf-8">
-        <script src="https://unpkg.com/blockly/blockly.min.js"></script>
-        <style>
-            html, body {{ height: 100%; margin: 0; }}
-            #blocklyDiv {{ height: 480px; width: 100%; }}
-        </style>
-      </head>
-      <body>
-        <div id="blocklyDiv"></div>
-        <xml id="toolbox" style="display:none">
-          <category name="Blocks">
-            <block type="controls_if"></block>
-            <block type="logic_compare"></block>
-            <block type="math_number"></block>
-            <block type="text"></block>
-          </category>
-        </xml>
-        <script>
-          var workspace = Blockly.inject('blocklyDiv',
-            {{ toolbox: document.getElementById('toolbox') }});
-          var xmlText = '<xml>{blockly_xml_blocks}</xml>';
-          var xml = Blockly.Xml.textToDom(xmlText);
-          Blockly.Xml.domToWorkspace(xml, workspace);
-        </script>
-      </body>
-    </html>
-    """
-    st.components.v1.html(blockly_html, height=520, scrolling=True)
+blockly_html = f"""
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <script src="https://unpkg.com/blockly/blockly.min.js"></script>
+    <style>
+        html, body {{ height: 100%; margin: 0; }}
+        #blocklyDiv {{ height: 480px; width: 100%; }}
+    </style>
+  </head>
+  <body>
+    <div id="blocklyDiv"></div>
+    <xml id="toolbox" style="display:none">
+      <category name="Genome">
+        <block type="gene_block"></block>
+      </category>
+    </xml>
+    <script>
+      // Define custom gene block
+      Blockly.Blocks['gene_block'] = {{
+        init: function() {{
+          this.appendDummyInput()
+              .appendField(new Blockly.FieldTextInput("Gene"), "GENE");
+          this.setPreviousStatement(true, null);
+          this.setNextStatement(true, null);
+          this.setColour(160);
+          this.setTooltip("");
+          this.setHelpUrl("");
+        }}
+      }};
+
+      var workspace = Blockly.inject('blocklyDiv', {{ toolbox: document.getElementById('toolbox') }});
+      var xmlText = '<xml>{blockly_xml_blocks}</xml>';
+      var xml = Blockly.Xml.textToDom(xmlText);
+      Blockly.Xml.domToWorkspace(xml, workspace);
+      Blockly.Xml.domToWorkspace(Blockly.Xml.textToDom(xmlText), workspace);
+      Blockly.utils.toolbox.flyoutCategoryCallback = function(){{}};
+    </script>
+  </body>
+</html>
+"""
+st.components.v1.html(blockly_html, height=520, scrolling=True)
+
 
     # -----------------------------------------------------------
     # Download JSON Button
