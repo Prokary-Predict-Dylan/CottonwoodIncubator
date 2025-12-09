@@ -127,13 +127,17 @@ if uploaded is not None:
     # Blockly Workspace
     # -----------------------------------------------------------
     st.subheader("Block workspace (visual code)")
-
+    
+    # Generate Blockly XML with custom gene blocks
     blockly_xml_blocks = ""
-    for b in filtered_blocks:
+    for i, b in enumerate(filtered_blocks):
+        x_pos = 20 + i * 120  # optional: horizontal layout
         blockly_xml_blocks += (
-            f'<block type="text" x="20" y="20"><field name="TEXT">{b["label"]}</field></block>'
+            f'<block type="gene_block" id="gene_{i}" x="{x_pos}" y="20">'
+            f'<field name="GENE">{b["label"]}</field>'
+            f'</block>'
         )
-
+    
     blockly_html = f"""
     <!doctype html>
     <html>
@@ -148,16 +152,27 @@ if uploaded is not None:
       <body>
         <div id="blocklyDiv"></div>
         <xml id="toolbox" style="display:none">
-          <category name="Blocks">
-            <block type="controls_if"></block>
-            <block type="logic_compare"></block>
-            <block type="math_number"></block>
-            <block type="text"></block>
+          <category name="Genome">
+            <block type="gene_block"></block>
           </category>
         </xml>
         <script>
-          var workspace = Blockly.inject('blocklyDiv',
-            {{ toolbox: document.getElementById('toolbox') }});
+          // Define custom gene block
+          Blockly.Blocks['gene_block'] = {{
+            init: function() {{
+              this.appendDummyInput()
+                  .appendField(new Blockly.FieldTextInput("Gene"), "GENE");
+              this.setPreviousStatement(true, null);
+              this.setNextStatement(true, null);
+              this.setColour(160);
+              this.setTooltip("");
+              this.setHelpUrl("");
+            }}
+          }};
+    
+          var workspace = Blockly.inject('blocklyDiv', {{
+              toolbox: document.getElementById('toolbox')
+          }});
           var xmlText = '<xml>{blockly_xml_blocks}</xml>';
           var xml = Blockly.Xml.textToDom(xmlText);
           Blockly.Xml.domToWorkspace(xml, workspace);
@@ -166,7 +181,6 @@ if uploaded is not None:
     </html>
     """
     st.components.v1.html(blockly_html, height=520, scrolling=True)
-
     # -----------------------------------------------------------
     # Download JSON Button
     # -----------------------------------------------------------
