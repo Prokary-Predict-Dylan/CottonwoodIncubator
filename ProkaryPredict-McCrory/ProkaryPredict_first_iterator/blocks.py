@@ -4,7 +4,7 @@ import re
 
 # Color system
 DEFAULT_COLORS = {
-    "core_metabolism": "#2fa151",
+    "core_metabolism": "#2c3e91",
     "energy_systems": "#c1d6be",
     "biosynthesis": "#e8eb63",
     "regulation": "#af5a53",
