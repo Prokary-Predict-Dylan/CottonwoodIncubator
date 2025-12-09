@@ -123,64 +123,79 @@ if uploaded is not None:
     with st.expander("Block data (JSON)"):
         st.json(filtered_blocks)
 
-    # -----------------------------------------------------------
-    # Blockly Workspace
-    # -----------------------------------------------------------
-    st.subheader("Block workspace (visual code)")
-    
-    # Generate Blockly XML with custom gene blocks
-    blockly_xml_blocks = ""
-    for i, b in enumerate(filtered_blocks):
-        x_pos = 20 + i * 120  # optional: horizontal layout
-        blockly_xml_blocks += (
-            f'<block type="gene_block" id="gene_{i}" x="{x_pos}" y="20">'
-            f'<field name="GENE">{b["label"]}</field>'
-            f'</block>'
-        )
-    
-    blockly_html = f"""
-    <!doctype html>
-    <html>
-      <head>
-        <meta charset="utf-8">
-        <script src="https://unpkg.com/blockly/blockly.min.js"></script>
-        <style>
-            html, body {{ height: 100%; margin: 0; }}
-            #blocklyDiv {{ height: 480px; width: 100%; }}
-        </style>
-      </head>
-      <body>
-        <div id="blocklyDiv"></div>
-        <xml id="toolbox" style="display:none">
-          <category name="Genome">
-            <block type="gene_block"></block>
-          </category>
-        </xml>
-        <script>
-          // Define custom gene block
-          Blockly.Blocks['gene_block'] = {{
-            init: function() {{
-              this.appendDummyInput()
-                  .appendField(new Blockly.FieldTextInput("Gene"), "GENE");
-              this.setPreviousStatement(true, null);
-              this.setNextStatement(true, null);
-              this.setColour(160);
-              this.setTooltip("");
-              this.setHelpUrl("");
-            }}
-          }};
-    
-          var workspace = Blockly.inject('blocklyDiv', {{
-              toolbox: document.getElementById('toolbox')
-          }});
-          var xmlText = '<xml>{blockly_xml_blocks}</xml>';
-          var xml = Blockly.Xml.textToDom(xmlText);
-          Blockly.Xml.domToWorkspace(xml, workspace);
-        </script>
-      </body>
-    </html>
-    """
-    st.components.v1.html(blockly_html, height=520, scrolling=True)
+# -----------------------------------------------------------
+# Blockly Workspace — Genome Assembly
+# -----------------------------------------------------------
+st.subheader("Block workspace (genome assembly)")
+
+# Generate Blockly XML for all genes
+blockly_xml_blocks = ""
+
+for i, gene in enumerate(filtered_blocks):
+    color = gene.get("color", 160)  # use your agreed color coding
+    block_id = f"gene_{i}"
+    next_block_id = f"gene_{i+1}" if i < len(filtered_blocks) - 1 else None
+
+    # optional: horizontal layout spacing
+    x_pos = 20 + i * 120  
+
+    block_xml = f'<block type="gene_block" id="{block_id}" x="{x_pos}" y="20">'
+    block_xml += f'<field name="GENE">{gene["label"]}</field>'
+    block_xml += f'<field name="COLOR">{color}</field>'
+    # connect to next block in sequence
+    if next_block_id:
+        block_xml += f'<next><block type="gene_block" id="{next_block_id}"></block></next>'
+    block_xml += '</block>'
+
+    blockly_xml_blocks += block_xml
+
+# Construct the HTML/JS for Streamlit
+blockly_html = f"""
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <script src="https://unpkg.com/blockly/blockly.min.js"></script>
+    <style>
+        html, body {{ height: 100%; margin: 0; }}
+        #blocklyDiv {{ height: 520px; width: 100%; }}
+    </style>
+  </head>
+  <body>
+    <div id="blocklyDiv"></div>
+    <xml id="toolbox" style="display:none">
+      <category name="Genome">
+        <block type="gene_block"></block>
+      </category>
+    </xml>
+    <script>
+      // Define custom gene block
+      Blockly.Blocks['gene_block'] = {{
+        init: function() {{
+          const geneName = this.getFieldValue('GENE') || 'Gene';
+          const geneColor = parseInt(this.getFieldValue('COLOR')) || 160;
+          this.appendDummyInput()
+              .appendField(new Blockly.FieldTextInput(geneName), "GENE");
+          this.setPreviousStatement(true, null);
+          this.setNextStatement(true, null);
+          this.setColour(geneColor);
+        }}
+      }};
+
+      var workspace = Blockly.inject('blocklyDiv', {{
+          toolbox: document.getElementById('toolbox')
+      }});
+
+      var xmlText = '<xml>{blockly_xml_blocks}</xml>';
+      var xml = Blockly.Xml.textToDom(xmlText);
+      Blockly.Xml.domToWorkspace(xml, workspace);
+    </script>
+  </body>
+</html>
+"""
+
+st.components.v1.html(blockly_html, height=550, scrolling=True)
+
     # -----------------------------------------------------------
     # Download JSON Button
     # -----------------------------------------------------------
