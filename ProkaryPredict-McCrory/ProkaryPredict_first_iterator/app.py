@@ -182,16 +182,6 @@ blockly_html = f"""
 """
 st.components.v1.html(blockly_html, height=520, scrolling=True)
 
-
-    # -----------------------------------------------------------
-    # Download JSON Button
-    # -----------------------------------------------------------
-    if st.button("Download blocks JSON"):
-        j = json.dumps(filtered_blocks, indent=2)
-        b64 = base64.b64encode(j.encode()).decode()
-        href = f'<a href="data:application/json;base64,{b64}" download="{uploaded.name}_blocks.json">Download blocks JSON</a>'
-        st.markdown(href, unsafe_allow_html=True)
-
 # -----------------------------------------------------------
 # PDF Export — Gene → Reaction mapping
 # -----------------------------------------------------------
