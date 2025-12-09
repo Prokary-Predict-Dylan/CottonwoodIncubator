@@ -24,6 +24,7 @@ with st.sidebar:
     st.markdown("---")
     st.header("Export")
     export_name = st.text_input("PDF filename (without ext)", value="prokarypredict_report")
+    
     if st.button("Export PDF"):
         st.session_state["export_request"] = time.time()
 
@@ -32,11 +33,10 @@ st.info("Upload a GenBank, FASTA, or SBML file. Parsed features will be converte
 # -----------------------------------------------------------
 # File Handling
 # -----------------------------------------------------------
-feature_list = []
-
 if uploaded is not None:
     fn = uploaded.name.lower()
     content = uploaded.read()
+    feature_list = []
 
     try:
         # ------------------------------
@@ -60,24 +60,24 @@ if uploaded is not None:
             sbml_res = parse_sbml(io.BytesIO(content))
 
             # Store COBRA model in session for PDF export
-            st.session_state['model'] = sbml_res["cobra_model"]
+            st.session_state['model'] = sbml_res["cobra_model"]  # ensure parse_sbml returns COBRA model
 
+            # Build feature list for blocks
             for idx, g in enumerate(sbml_res["genes"]):
                 feature_list.append({
                     "id": g["id"],
                     "name": g["name"],
-                    "product": g.get("product", ""),
-                    "auto_categories": sbml_res["auto_categories"],
+                    "product": g.get("product", ""),  
+                    "auto_categories": sbml_res["auto_categories"],  
                     "start": idx * 200,
                     "end": idx * 200 + 100,
                     "length": 100,
                     "source": "sbml",
                 })
-
             st.success(f"Parsed SBML: {len(feature_list)} genes (mapped to blocks)")
 
         # ------------------------------
-        # Unknown → heuristics
+        # Unknown file → heuristics
         # ------------------------------
         else:
             st.warning("Unknown extension; attempting heuristics...")
@@ -90,9 +90,11 @@ if uploaded is not None:
                     st.success(f"Parsed FASTA heuristically: {len(feature_list)} sequences")
                 except Exception:
                     st.error("Could not parse file. Upload a valid GenBank, FASTA, or SBML file.")
+                    feature_list = []
 
     except Exception as e:
         st.error(f"Parsing error: {e}")
+        feature_list = []
 
     # -----------------------------------------------------------
     # Block Conversion
@@ -127,11 +129,9 @@ if uploaded is not None:
     st.subheader("Block workspace (visual code)")
 
     blockly_xml_blocks = ""
-    for i, b in enumerate(filtered_blocks):
+    for b in filtered_blocks:
         blockly_xml_blocks += (
-            f'<block type="gene_block" id="gene_{i}">'
-            f'<field name="GENE">{b["label"]}</field>'
-            f'</block>'
+            f'<block type="text" x="20" y="20"><field name="TEXT">{b["label"]}</field></block>'
         )
 
     blockly_html = f"""
@@ -148,27 +148,16 @@ if uploaded is not None:
       <body>
         <div id="blocklyDiv"></div>
         <xml id="toolbox" style="display:none">
-          <category name="Genome">
-            <block type="gene_block"></block>
+          <category name="Blocks">
+            <block type="controls_if"></block>
+            <block type="logic_compare"></block>
+            <block type="math_number"></block>
+            <block type="text"></block>
           </category>
         </xml>
         <script>
-          // Define custom gene block
-          Blockly.Blocks['gene_block'] = {{
-            init: function() {{
-              this.appendDummyInput()
-                  .appendField(new Blockly.FieldTextInput("Gene"), "GENE");
-              this.setPreviousStatement(true, null);
-              this.setNextStatement(true, null);
-              this.setColour(160);
-              this.setTooltip("");
-              this.setHelpUrl("");
-            }}
-          }};
-
-          var workspace = Blockly.inject('blocklyDiv', {{
-              toolbox: document.getElementById('toolbox')
-          }});
+          var workspace = Blockly.inject('blocklyDiv',
+            {{ toolbox: document.getElementById('toolbox') }});
           var xmlText = '<xml>{blockly_xml_blocks}</xml>';
           var xml = Blockly.Xml.textToDom(xmlText);
           Blockly.Xml.domToWorkspace(xml, workspace);
@@ -176,7 +165,6 @@ if uploaded is not None:
       </body>
     </html>
     """
-
     st.components.v1.html(blockly_html, height=520, scrolling=True)
 
     # -----------------------------------------------------------
@@ -195,14 +183,15 @@ if st.session_state.get("export_request") and 'model' in st.session_state:
     model = st.session_state['model']
     pdf_bytes = export_gene_reaction_pdf(
         model,
-        metadata={"source_file": uploaded.name if uploaded else "unknown"}
+        metadata={"source_file": uploaded.name}
     )
 
     b64 = base64.b64encode(pdf_bytes).decode()
     fname = f"{export_name}.pdf"
+
     href = (
         f'<a href="data:application/pdf;base64,{b64}" '
-        f'download="{fname}">Download Gene-Reaction PDF report</a>'
+        f'download="{fname}">Download PDF report</a>'
     )
     st.markdown(href, unsafe_allow_html=True)
     st.session_state["export_request"] = None
