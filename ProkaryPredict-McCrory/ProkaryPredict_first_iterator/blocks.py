@@ -4,12 +4,12 @@ import re
 
 # Color system
 DEFAULT_COLORS = {
-    "core_metabolism": "#bed5d6",
+    "core_metabolism": "#2fa151",
     "energy_systems": "#c1d6be",
-    "biosynthesis": "#a38280",
+    "biosynthesis": "#e8eb63",
     "regulation": "#af5a53",
-    "transport": "#eaceca",
-    "other_functions": "#c38a71",
+    "transport": "#b34237",
+    "other_functions": "#524d5c",
     "unassigned": "#cccccc",
     "non_coding": "#ffffff"
 }
