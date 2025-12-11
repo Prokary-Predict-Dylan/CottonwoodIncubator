@@ -10,7 +10,8 @@ DEFAULT_COLORS = {
     "transport": "#b34237",
     "other_functions": "#524d5c",
     "unassigned": "#cccccc",
-    "non_coding": "#ffffff"
+    "non_coding": "#ffffff",
+    "regulation": "#9a6bd1"
 }
 
 # EC class → functional category mapping
@@ -24,7 +25,8 @@ EC_CATEGORY_MAP = {
     "7": "transport"            # Translocases
 }
 
-EC_REGEX = re.compile(r"(\d+)\.\d+\.\d+\.\d+")  # Extracts the EC class number
+# capture full EC numbers (e.g., 1.1.1.1)
+EC_REGEX = re.compile(r"(\d+\.\d+\.\d+\.\d+)")  # Extract full EC numbers
 
 
 def extract_ec_numbers(f):
@@ -40,7 +42,7 @@ def extract_ec_numbers(f):
 
     # 1) Qualifiers from GenBank or SBML
     q = f.get("qualifiers", {})
-    if "EC_number" in q:
+    if isinstance(q, dict) and "EC_number" in q:
         for ec in q["EC_number"]:
             ecs.add(ec)
 
@@ -49,7 +51,7 @@ def extract_ec_numbers(f):
         ecs.add(f["ec_number"])
 
     # 3) Product string
-    prod = f.get("product", "")
+    prod = f.get("product", "") or ""
     matches = EC_REGEX.findall(prod)
     for m in matches:
         ecs.add(m)
@@ -78,7 +80,7 @@ def categorize_feature(f):
             return EC_CATEGORY_MAP[ec_class]
 
     # 3) Subsystem fallback (SBML models often include this)
-    subsystem = f.get("subsystem", "").lower()
+    subsystem = (f.get("subsystem") or "").lower()
     if "transport" in subsystem:
         return "transport"
     if "biosynth" in subsystem:
@@ -89,15 +91,15 @@ def categorize_feature(f):
         return "regulation"
 
     # 4) Name / product fallback
-    text = f.get("product", "").lower() + " " + f.get("name", "").lower()
+    text = f.get("product", "").lower() + " " + (f.get("name") or "").lower()
 
     if any(k in text for k in ["transporter", "permease", "channel", "pump"]):
         return "transport"
-    if any(k in text for k in ["synthase", "synthetase", "ligase"]):
+    if any(k in text for k in ["synthase", "synthetase", "ligase", "synth"]):
         return "biosynthesis"
-    if any(k in text for k in ["dehydrogenase", "isomerase", "kinase", "oxidase"]):
+    if any(k in text for k in ["dehydrogenase", "isomerase", "kinase", "oxidase", "decarboxylase"]):
         return "core_metabolism"
-    if any(k in text for k in ["regulator", "repressor", "activator"]):
+    if any(k in text for k in ["regulator", "repressor", "activator", "sigma"]):
         return "regulation"
 
     # 5) Fallback
@@ -118,13 +120,14 @@ def features_to_blocks(features):
     if have_coords:
         for f in features:
             cat = categorize_feature(f)
+            length = f.get("length") or (f.get("end") - f.get("start") if f.get("end") and f.get("start") else 100)
             blocks.append({
                 "id": f.get("id"),
                 "label": f.get("name") or f.get("id"),
                 "category": cat,
                 "start": f.get("start"),
                 "end": f.get("end"),
-                "length": f.get("length") or (f.get("end") - f.get("start")),
+                "length": length,
                 "color": assign_color(cat),
                 "shape": "rect",
                 "metadata": f
