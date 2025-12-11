@@ -5,11 +5,9 @@ import cobra
 import re
 from collections import defaultdict, Counter
 
-
 # ---------------------------------------------------------
 # FASTA PARSER
 # ---------------------------------------------------------
-
 def parse_fasta(handle):
     records = list(SeqIO.parse(handle, "fasta"))
     results = []
@@ -24,11 +22,9 @@ def parse_fasta(handle):
         })
     return results
 
-
 # ---------------------------------------------------------
 # GENBANK PARSER
 # ---------------------------------------------------------
-
 def parse_genbank(handle):
     records = list(SeqIO.parse(handle, "genbank"))
     results = []
@@ -36,19 +32,19 @@ def parse_genbank(handle):
         for feat in r.features:
             if feat.type in ("gene", "CDS", "rRNA", "tRNA"):
                 gene_name = None
-                qualifiers = feat.qualifiers
+                qualifiers = feat.qualifiers or {}
                 if "gene" in qualifiers:
                     gene_name = qualifiers.get("gene")[0]
                 elif "locus_tag" in qualifiers:
                     gene_name = qualifiers.get("locus_tag")[0]
                 prod = qualifiers.get("product", [""])[0]
-                seq_len = int(len(feat.location))
+                seq_len = int(len(feat.location)) if feat.location is not None else 0
                 results.append({
                     "id": qualifiers.get("locus_tag", [f"{r.id}_{len(results)}"])[0],
                     "name": gene_name or qualifiers.get("locus_tag", ["unknown"])[0],
                     "product": prod,
-                    "start": int(feat.location.start),
-                    "end": int(feat.location.end),
+                    "start": int(feat.location.start) if feat.location is not None else None,
+                    "end": int(feat.location.end) if feat.location is not None else None,
                     "length": seq_len,
                     "type": feat.type,
                     "source": "genbank",
@@ -56,17 +52,14 @@ def parse_genbank(handle):
                 })
     return results
 
-
 # ---------------------------------------------------------
 # AUTO-GENERATED CATEGORY SYSTEM FOR SBML
 # ---------------------------------------------------------
-
 def autogenerate_categories_from_model(model):
     """
     Analyze reaction names/IDs/subsystems to create a model-specific categorization map.
     Returns: {category: set(keywords)}
     """
-
     categories = {
         "energy_systems": set(),
         "core_metabolism": set(),
@@ -115,7 +108,7 @@ def autogenerate_categories_from_model(model):
     # enrich categories dynamically
     for rid, text in reaction_texts.items():
         tokens = re.findall(r"[a-zA-Z0-9_]+", text.lower())
-        for category in categories:
+        for category in list(categories.keys()):
             if any(k in text for k in categories[category]):
                 for t in tokens:
                     if token_counts[t] > 5 and len(t) > 2:
@@ -123,11 +116,9 @@ def autogenerate_categories_from_model(model):
 
     return categories
 
-
 # ---------------------------------------------------------
 # SBML PARSER WITH AUTO-CATEGORIZATION
 # ---------------------------------------------------------
-
 def parse_sbml(file_like):
     try:
         model = cobra.io.read_sbml_model(file_like)
