@@ -3,20 +3,20 @@ import plotly.graph_objects as go
 
 def blocks_to_figure(blocks, genome_length=None):
     if genome_length is None:
-        genome_length = max(b["end"] for b in blocks) if blocks else 1
+        genome_length = max((b["end"] for b in blocks), default=1)
     fig = go.Figure()
     for b in blocks:
-        x0 = b["start"]
-        x1 = b["end"]
+        x0 = b.get("start", 0)
+        x1 = b.get("end", x0 + b.get("length", 1))
         fig.add_trace(go.Bar(
             x=[x1 - x0],
             y=[1],
             base=[x0],
             orientation='h',
-            marker=dict(color=b["color"]),
+            marker=dict(color=b.get("color", "#cccccc")),
             hoverinfo='text',
-            text=f"{b['label']}<br>len: {b['length']}<br>cat: {b['category']}",
-            name=b['label'],
+            text=f"{b.get('label')}<br>len: {b.get('length')}<br>cat: {b.get('category')}",
+            name=b.get('label'),
             showlegend=False
         ))
     fig.update_layout(
