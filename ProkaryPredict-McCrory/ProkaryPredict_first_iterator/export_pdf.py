@@ -4,6 +4,7 @@ import pandas as pd
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
+import time
 
 def export_gene_reaction_pdf(model, metadata=None):
     """
@@ -15,13 +16,22 @@ def export_gene_reaction_pdf(model, metadata=None):
     # ---- Build table ----
     mapping = []
     for rxn in model.reactions:
-        for gene in rxn.genes:
+        # if rxn has no genes, we still include reaction with empty gene
+        if not rxn.genes:
             mapping.append({
-                "Gene ID": gene.id,
+                "Gene ID": "",
                 "Reaction ID": rxn.id,
-                "Reaction Name": rxn.name,
-                "Reaction Equation": rxn.reaction
+                "Reaction Name": rxn.name or "",
+                "Reaction Equation": getattr(rxn, "reaction", "")
             })
+        else:
+            for gene in rxn.genes:
+                mapping.append({
+                    "Gene ID": gene.id,
+                    "Reaction ID": rxn.id,
+                    "Reaction Name": rxn.name or "",
+                    "Reaction Equation": getattr(rxn, "reaction", "")
+                })
 
     df = pd.DataFrame(mapping)
 
@@ -29,14 +39,15 @@ def export_gene_reaction_pdf(model, metadata=None):
     c = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter
 
-    def new_page():
+    def new_page(title="ProkaryPredict Export"):
         c.showPage()
         c.setFont("Helvetica-Bold", 16)
-        c.drawString(1*inch, height - 1*inch, "Export PDF")
+        c.drawString(1*inch, height - 1*inch, title)
         c.setFont("Helvetica", 10)
         return height - 1.3*inch
 
-    y = new_page()
+    # First page (cover-like header)
+    y = new_page("ProkaryPredict — Gene→Reaction Report")
 
     # Metadata
     if metadata:
@@ -45,6 +56,7 @@ def export_gene_reaction_pdf(model, metadata=None):
             y -= 12
         y -= 10
 
+    # if no data
     if df.empty:
         c.drawString(1*inch, y, "No gene–reaction relationships found.")
         c.save()
@@ -70,7 +82,7 @@ def export_gene_reaction_pdf(model, metadata=None):
     # Rows
     for idx, row in df.iterrows():
         if y < 1*inch:
-            y = new_page()
+            y = new_page("ProkaryPredict — Gene→Reaction Report (cont.)")
             c.setFont("Helvetica-Bold", 10)
             for i, col in enumerate(df.columns):
                 c.drawString(x_pos[i], y, col)
@@ -79,7 +91,7 @@ def export_gene_reaction_pdf(model, metadata=None):
 
         for i, col in enumerate(df.columns):
             text = str(row[col])
-            max_chars = int(col_widths[i] / 5)
+            max_chars = max(10, int(col_widths[i] / 5))  # defensive
             if len(text) > max_chars:
                 text = text[:max_chars-3] + "..."
             c.drawString(x_pos[i], y, text)
