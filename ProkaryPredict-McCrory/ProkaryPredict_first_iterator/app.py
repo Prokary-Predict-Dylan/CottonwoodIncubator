@@ -12,19 +12,23 @@ import time
 st.set_page_config(page_title="ProkaryPredict First Iterator", layout="wide")
 st.title("ProkaryPredict — (First Iterator)")
 
+# Ensure export_request exists
+if "export_request" not in st.session_state:
+    st.session_state["export_request"] = None
+
 # -----------------------------------------------------------
 # Sidebar
 # -----------------------------------------------------------
 with st.sidebar:
     st.header("Upload files")
     uploaded = st.file_uploader(
-        "Upload GenBank (.gb/.gbk) / FASTA / SBML (.xml/.sbml)", 
+        "Upload GenBank (.gb/.gbk) / FASTA / SBML (.xml/.sbml)",
         accept_multiple_files=False
     )
     st.markdown("---")
     st.header("Export")
     export_name = st.text_input("PDF filename (without ext)", value="prokarypredict_report")
-    
+
     if st.button("Export PDF"):
         st.session_state["export_request"] = time.time()
 
@@ -39,6 +43,12 @@ if uploaded is not None:
     feature_list = []
 
     try:
+        # decode a small portion safely for detection
+        try:
+            preview_text = content[:5000].decode("utf-8", errors="ignore").lower()
+        except Exception:
+            preview_text = ""
+
         # ------------------------------
         # GenBank
         # ------------------------------
@@ -56,20 +66,21 @@ if uploaded is not None:
         # ------------------------------
         # SBML
         # ------------------------------
-        elif fn.endswith((".xml", ".sbml")) or b"<sbml" in content[:200].lower():
+        elif fn.endswith((".xml", ".sbml")) or "<sbml" in preview_text:
             sbml_res = parse_sbml(io.BytesIO(content))
             st.session_state['model'] = sbml_res["cobra_model"]
 
             for idx, g in enumerate(sbml_res["genes"]):
                 feature_list.append({
                     "id": g["id"],
-                    "name": g["name"],
-                    "product": g.get("product", ""),  
-                    "auto_categories": sbml_res["auto_categories"],  
+                    "name": g.get("name") or g.get("id"),
+                    "product": g.get("product", ""),
+                    "auto_categories": sbml_res.get("auto_categories", {}),
                     "start": idx * 200,
                     "end": idx * 200 + 100,
                     "length": 100,
                     "source": "sbml",
+                    "reactions": g.get("reactions", [])
                 })
             st.success(f"Parsed SBML: {len(feature_list)} genes (mapped to blocks)")
 
@@ -127,22 +138,22 @@ if uploaded is not None:
 
     blockly_xml_blocks = ""
     for i, gene in enumerate(filtered_blocks):
-        color = gene.get("color", 160)
+        color = gene.get("color", "#cccccc")
         block_id = f"gene_{i}"
-        next_block_id = f"gene_{i+1}" if i < len(filtered_blocks) - 1 else None
 
-        # Horizontal layout
-        x_pos = 20 + i * 120  
+        x_pos = 20 + i * 120  # Horizontal layout spacing
 
-        block_xml = f'<block type="gene_block" id="{block_id}" x="{x_pos}" y="20">'
-        block_xml += f'<field name="GENE">{gene["label"]}</field>'
-        block_xml += f'<field name="COLOR">{color}</field>'
-        if next_block_id:
-            block_xml += f'<next><block type="gene_block" id="{next_block_id}"></block></next>'
-        block_xml += '</block>'
+        # Emit each block separately (no nested <next>)
+        block_xml = (
+            f'<block type="gene_block" id="{block_id}" x="{x_pos}" y="20">'
+            f'<field name="GENE">{gene["label"]}</field>'
+            f'<field name="COLOR">{color}</field>'
+            '</block>'
+        )
 
         blockly_xml_blocks += block_xml
 
+    # Use f-string to interpolate blockly_xml_blocks correctly
     blockly_html = f"""
     <!doctype html>
     <html>
@@ -164,19 +175,20 @@ if uploaded is not None:
         <script>
           Blockly.Blocks['gene_block'] = {{
             init: function() {{
-              const geneName = this.getFieldValue('GENE') || 'Gene';
-              const geneColor = parseInt(this.getFieldValue('COLOR')) || 160;
+              var geneName = this.getFieldValue('GENE') || 'Gene';
+              var geneColor = this.getFieldValue('COLOR') || '#cccccc';
               this.appendDummyInput()
-                  .appendField(new Blockly.FieldTextInput(geneName), "GENE");
+                  .appendField(new Blockly.FieldTextInput(geneName), "GENE")
+                  .appendField(new Blockly.FieldTextInput(geneColor), "COLOR");
               this.setPreviousStatement(true, null);
               this.setNextStatement(true, null);
-              this.setColour(geneColor);
+              this.setColour(this.getFieldValue('COLOR') || '#cccccc');
             }}
           }};
           var workspace = Blockly.inject('blocklyDiv', {{
               toolbox: document.getElementById('toolbox')
           }});
-          var xmlText = '<xml>{blockly_xml_blocks}</xml>';
+          var xmlText = `<xml>{blockly_xml_blocks}</xml>`;
           var xml = Blockly.Xml.textToDom(xmlText);
           Blockly.Xml.domToWorkspace(xml, workspace);
         </script>
@@ -199,17 +211,23 @@ if uploaded is not None:
 # -----------------------------------------------------------
 if st.session_state.get("export_request") and 'model' in st.session_state:
     model = st.session_state['model']
-    pdf_bytes = export_gene_reaction_pdf(
-        model,
-        metadata={"source_file": uploaded.name}
-    )
+    try:
+        pdf_bytes = export_gene_reaction_pdf(
+            model,
+            metadata={"source_file": uploaded.name if uploaded is not None else "unknown",
+                      "exported_at": time.strftime("%Y-%m-%d %H:%M:%S")}
+        )
 
-    b64 = base64.b64encode(pdf_bytes).decode()
-    fname = f"{export_name}.pdf"
+        b64 = base64.b64encode(pdf_bytes).decode()
+        fname = f"{export_name}.pdf"
 
-    href = (
-        f'<a href="data:application/pdf;base64,{b64}" '
-        f'download="{fname}">Download PDF report</a>'
-    )
-    st.markdown(href, unsafe_allow_html=True)
+        href = (
+            f'<a href="data:application/pdf;base64,{b64}" '
+            f'download="{fname}">Download PDF report</a>'
+        )
+        st.markdown(href, unsafe_allow_html=True)
+    except Exception as e:
+        st.error(f"PDF export failed: {e}")
+
+    # Reset request flag so subsequent clicks are new
     st.session_state["export_request"] = None
