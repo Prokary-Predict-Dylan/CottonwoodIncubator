@@ -35,22 +35,23 @@ with st.sidebar:
 st.info("Upload a GenBank, FASTA, or SBML file. Parsed features will be converted to blocks and displayed.")
 
 # -----------------------------------------------------------
-# File Handling — FASTA, GenBank, SBML ONLY
+# File Handling — FASTA, GenBank, SBML
 # -----------------------------------------------------------
 if uploaded is not None:
     fn = uploaded.name.lower()
     feature_list = []
 
     # ------------------------------
-    # Helper to get text-mode handle for FASTA/GenBank
+    # Helper: Convert UploadedFile to text-mode StringIO
     # ------------------------------
     def get_text_handle(uploaded_file):
         """
-        Convert Streamlit UploadedFile to a text-mode StringIO.
+        Converts Streamlit UploadedFile to a text-mode file for Biopython.
         """
         uploaded_file.seek(0)
-        content = uploaded_file.getvalue()  # bytes
-        return io.StringIO(content.decode("utf-8", errors="ignore"))
+        content_bytes = uploaded_file.getvalue()  # raw bytes
+        text_content = content_bytes.decode("utf-8", errors="ignore")
+        return io.StringIO(text_content)
 
     # ------------------------------
     # GenBank
@@ -62,7 +63,6 @@ if uploaded is not None:
             st.success(f"Parsed GenBank: {len(feature_list)} features found")
         except Exception as e:
             st.error(f"GenBank parsing failed: {e}")
-            feature_list = []
 
     # ------------------------------
     # FASTA
@@ -74,7 +74,6 @@ if uploaded is not None:
             st.success(f"Parsed FASTA: {len(feature_list)} sequences")
         except Exception as e:
             st.error(f"FASTA parsing failed: {e}")
-            feature_list = []
 
     # ------------------------------
     # SBML
@@ -100,13 +99,12 @@ if uploaded is not None:
             st.success(f"Parsed SBML: {len(feature_list)} genes")
         except Exception as e:
             st.error(f"SBML parsing failed: {e}")
-            feature_list = []
 
     else:
         st.error("Unsupported file type. Upload FASTA, GenBank, or SBML.")
 
     # ------------------------------
-    # Block Conversion & Filtering
+    # If parsing succeeded, continue with blocks
     # ------------------------------
     if feature_list:
         blocks = features_to_blocks(feature_list)
@@ -116,45 +114,12 @@ if uploaded is not None:
         )
         filtered_blocks = [b for b in blocks if b["category"] in sel_cats]
 
-        # ------------------------------
-        # Visualization
-        # ------------------------------
         st.subheader("Block visualization")
         fig = blocks_to_figure(filtered_blocks)
         st.plotly_chart(fig, use_container_width=True)
 
-        # ------------------------------
-        # JSON Export
-        # ------------------------------
         with st.expander("Block data (JSON)"):
             st.json(filtered_blocks)
-
-    # -----------------------------------------------------------
-    # Block Conversion
-    # -----------------------------------------------------------
-    blocks = features_to_blocks(feature_list)
-
-    # -----------------------------------------------------------
-    # Category Filter
-    # -----------------------------------------------------------
-    categories = sorted(set(b["category"] for b in blocks))
-    sel_cats = st.sidebar.multiselect(
-        "Show categories", options=categories, default=categories
-    )
-    filtered_blocks = [b for b in blocks if b["category"] in sel_cats]
-
-    # -----------------------------------------------------------
-    # Visualization
-    # -----------------------------------------------------------
-    st.subheader("Block visualization")
-    fig = blocks_to_figure(filtered_blocks)
-    st.plotly_chart(fig, use_container_width=True)
-
-    # -----------------------------------------------------------
-    # JSON Export
-    # -----------------------------------------------------------
-    with st.expander("Block data (JSON)"):
-        st.json(filtered_blocks)
 
     # -----------------------------------------------------------
     # Blockly Workspace — Genome Assembly
