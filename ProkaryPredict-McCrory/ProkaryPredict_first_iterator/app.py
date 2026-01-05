@@ -60,8 +60,10 @@ if uploaded is not None:
         # FASTA
         # ------------------------------
         elif fn.endswith((".fa", ".fasta")):
-            feature_list = parse_fasta(io.BytesIO(content))
+            text_handle = io.StringIO(content.decode("utf-8"))
+            feature_list = parse_fasta(text_handle)
             st.success(f"Parsed FASTA: {len(feature_list)} sequences")
+
 
         # ------------------------------
         # SBML
