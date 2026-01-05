@@ -48,30 +48,38 @@ def parse_fasta(handle):
 # GENBANK PARSER
 # ---------------------------------------------------------
 def parse_genbank(handle):
+    # Enforce text mode (same rule as FASTA)
+    if isinstance(handle, (bytes, bytearray)):
+        handle = io.StringIO(handle.decode("utf-8", errors="ignore"))
+    elif hasattr(handle, "read"):
+        try:
+            handle.read(0)
+        except TypeError:
+            handle = io.StringIO(handle.read().decode("utf-8", errors="ignore"))
+
     records = list(SeqIO.parse(handle, "genbank"))
+
     results = []
     for r in records:
         for feat in r.features:
             if feat.type in ("gene", "CDS", "rRNA", "tRNA"):
-                gene_name = None
                 qualifiers = feat.qualifiers or {}
-                if "gene" in qualifiers:
-                    gene_name = qualifiers.get("gene")[0]
-                elif "locus_tag" in qualifiers:
-                    gene_name = qualifiers.get("locus_tag")[0]
+                gene_name = qualifiers.get("gene", [None])[0]
+                locus = qualifiers.get("locus_tag", ["unknown"])[0]
                 prod = qualifiers.get("product", [""])[0]
-                seq_len = int(len(feat.location)) if feat.location is not None else 0
+
                 results.append({
-                    "id": qualifiers.get("locus_tag", [f"{r.id}_{len(results)}"])[0],
-                    "name": gene_name or qualifiers.get("locus_tag", ["unknown"])[0],
+                    "id": locus,
+                    "name": gene_name or locus,
                     "product": prod,
-                    "start": int(feat.location.start) if feat.location is not None else None,
-                    "end": int(feat.location.end) if feat.location is not None else None,
-                    "length": seq_len,
+                    "start": int(feat.location.start) if feat.location else None,
+                    "end": int(feat.location.end) if feat.location else None,
+                    "length": int(len(feat.location)) if feat.location else 0,
                     "type": feat.type,
                     "source": "genbank",
                     "qualifiers": qualifiers
                 })
+
     return results
 
 # ---------------------------------------------------------
