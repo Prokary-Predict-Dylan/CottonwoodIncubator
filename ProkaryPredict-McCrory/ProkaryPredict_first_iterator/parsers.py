@@ -13,20 +13,24 @@ import io
 
 def parse_fasta(handle):
     """
-    Biopython FASTA parsing REQUIRES text mode.
-    This function guarantees text-mode input no matter what is passed.
+    Biopython FASTA parsing — ensures text-mode input.
+    Works for Streamlit UploadedFile, BytesIO, or bytes.
     """
+    import io
+    from Bio import SeqIO
 
-    # Case 1: raw bytes
+    # If raw bytes, wrap in TextIOWrapper
     if isinstance(handle, (bytes, bytearray)):
-        handle = io.StringIO(handle.decode("utf-8", errors="ignore"))
+        handle = io.TextIOWrapper(io.BytesIO(handle), encoding="utf-8", errors="ignore")
 
-    # Case 2: BytesIO or binary file-like
+    # If UploadedFile or binary file-like
     elif hasattr(handle, "read"):
+        # Attempt reading 0 bytes to check text mode
         try:
-            handle.read(0)  # text-mode test
+            handle.read(0)
         except TypeError:
-            handle = io.StringIO(handle.read().decode("utf-8", errors="ignore"))
+            handle.seek(0)
+            handle = io.TextIOWrapper(io.BytesIO(handle.read()), encoding="utf-8", errors="ignore")
 
     records = list(SeqIO.parse(handle, "fasta"))
 
@@ -42,7 +46,6 @@ def parse_fasta(handle):
         })
 
     return results
-
 
 # ---------------------------------------------------------
 # GENBANK PARSER
