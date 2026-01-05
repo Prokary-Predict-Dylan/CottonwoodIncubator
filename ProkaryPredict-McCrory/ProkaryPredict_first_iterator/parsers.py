@@ -9,24 +9,20 @@ from collections import Counter
 # -------------------------
 def parse_fasta(handle):
     """
-    Robust FASTA parser for Streamlit uploads:
-    - Accepts UploadedFile, bytes, or text-mode file.
-    - Guarantees Biopython sees a text-mode handle.
+    Robust FASTA parser for Streamlit UploadedFile, bytes, or text.
+    Always gives SeqIO a proper text-mode file-like object.
     """
-    # Case 1: Streamlit UploadedFile or any file-like
-    if hasattr(handle, "read"):
+    # Streamlit UploadedFile or bytes
+    if hasattr(handle, "read"):  # file-like
         handle.seek(0)
-        content_bytes = handle.read()
-        handle = io.TextIOWrapper(io.BytesIO(content_bytes), encoding="utf-8", errors="ignore")
-
-    # Case 2: raw bytes
+        text_handle = io.StringIO(handle.read().decode("utf-8", errors="ignore"))
     elif isinstance(handle, (bytes, bytearray)):
-        handle = io.TextIOWrapper(io.BytesIO(handle), encoding="utf-8", errors="ignore")
-
-    # Case 3: already text-mode (do nothing)
+        text_handle = io.StringIO(handle.decode("utf-8", errors="ignore"))
+    else:
+        text_handle = handle  # already text-mode
 
     # Parse FASTA
-    records = list(SeqIO.parse(handle, "fasta"))
+    records = list(SeqIO.parse(text_handle, "fasta"))
 
     results = []
     for r in records:
@@ -38,26 +34,24 @@ def parse_fasta(handle):
             "length": len(r.seq),
             "source": "fasta"
         })
-
     return results
 
 # -------------------------
 # GENBANK PARSER
 # -------------------------
-def parse_genbank(file_like):
+def parse_genbank(handle):
     """
-    Parse GenBank files robustly for Streamlit UploadedFile or bytes.
+    Robust GenBank parser for Streamlit UploadedFile, bytes, or text.
     """
-    if hasattr(file_like, "read"):
-        file_like.seek(0)
-        content_bytes = file_like.read()
-        handle = io.StringIO(content_bytes.decode("utf-8", errors="ignore"))
-    elif isinstance(file_like, (bytes, bytearray)):
-        handle = io.StringIO(file_like.decode("utf-8", errors="ignore"))
+    if hasattr(handle, "read"):  # file-like
+        handle.seek(0)
+        text_handle = io.StringIO(handle.read().decode("utf-8", errors="ignore"))
+    elif isinstance(handle, (bytes, bytearray)):
+        text_handle = io.StringIO(handle.decode("utf-8", errors="ignore"))
     else:
-        handle = file_like
+        text_handle = handle
 
-    records = list(SeqIO.parse(handle, "genbank"))
+    records = list(SeqIO.parse(text_handle, "genbank"))
     results = []
     for r in records:
         for feat in r.features:
@@ -75,6 +69,7 @@ def parse_genbank(file_like):
                     "source": "genbank"
                 })
     return results
+
 
 # -------------------------
 # SBML PARSER
