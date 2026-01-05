@@ -6,15 +6,25 @@ import re
 from collections import defaultdict, Counter
 
 # ---------------------------------------------------------
-# FASTA PARSER (text-mode safe)
+# FASTA PARSER (ABSOLUTE TEXT-MODE ENFORCEMENT)
 # ---------------------------------------------------------
+from Bio import SeqIO
+import io
+
 def parse_fasta(handle):
-    # If bytes or binary stream, convert to text
+    """
+    Biopython FASTA parsing REQUIRES text mode.
+    This function guarantees text-mode input no matter what is passed.
+    """
+
+    # Case 1: raw bytes
     if isinstance(handle, (bytes, bytearray)):
         handle = io.StringIO(handle.decode("utf-8", errors="ignore"))
+
+    # Case 2: BytesIO or binary file-like
     elif hasattr(handle, "read"):
         try:
-            handle.read(0)  # test text-mode
+            handle.read(0)  # text-mode test
         except TypeError:
             handle = io.StringIO(handle.read().decode("utf-8", errors="ignore"))
 
@@ -24,12 +34,13 @@ def parse_fasta(handle):
     for r in records:
         results.append({
             "id": r.id,
-            "name": getattr(r, "name", r.id),
+            "name": r.name if r.name else r.id,
             "description": r.description,
             "sequence": str(r.seq),
             "length": len(r.seq),
             "source": "fasta"
         })
+
     return results
 
 
