@@ -1,3 +1,4 @@
+# app.py
 import streamlit as st
 from parsers import parse_fasta, parse_genbank, parse_sbml
 from blocks import features_to_blocks
@@ -19,11 +20,13 @@ if "export_request" not in st.session_state:
 # Sidebar: upload & export
 # ---------------------------
 with st.sidebar:
+    st.header("Upload files")
     uploaded = st.file_uploader(
         "Upload GenBank (.gb/.gbk) / FASTA / SBML (.xml/.sbml)",
         accept_multiple_files=False
     )
     st.markdown("---")
+    st.header("Export PDF")
     export_name = st.text_input("PDF filename (without ext)", value="prokarypredict_report")
     if st.button("Export PDF"):
         st.session_state["export_request"] = time.time()
@@ -31,35 +34,35 @@ with st.sidebar:
 st.info("Upload a GenBank, FASTA, or SBML file. Parsed features will be converted to blocks and displayed.")
 
 # ---------------------------
-# File handling
+# File handling: FASTA, GenBank, SBML
 # ---------------------------
+feature_list = []
+
 if uploaded is not None:
     fn = uploaded.name.lower()
-    feature_list = []
-
     try:
         # -----------------
-        # FASTA or GenBank
+        # FASTA
         # -----------------
-        if fn.endswith((".fa", ".fasta", ".gb", ".gbk", ".genbank")):
-            # Convert uploaded file to text-mode for Biopython
-            text_handle = io.StringIO(uploaded.getvalue().decode("utf-8", errors="ignore"))
-
-            if fn.endswith((".fa", ".fasta")):
-                feature_list = parse_fasta(text_handle)
-                st.success(f"Parsed FASTA: {len(feature_list)} sequences")
-            else:
-                feature_list = parse_genbank(text_handle)
-                st.success(f"Parsed GenBank: {len(feature_list)} features found")
+        if fn.endswith((".fa", ".fasta")):
+            feature_list = parse_fasta(uploaded)
+            st.success(f"Parsed FASTA: {len(feature_list)} sequences")
 
         # -----------------
-        # SBML/XML
+        # GenBank
+        # -----------------
+        elif fn.endswith((".gb", ".gbk", ".genbank")):
+            feature_list = parse_genbank(uploaded)
+            st.success(f"Parsed GenBank: {len(feature_list)} features found")
+
+        # -----------------
+        # SBML / XML
         # -----------------
         elif fn.endswith((".xml", ".sbml")):
-            sbml_res = parse_sbml(io.BytesIO(uploaded.getvalue()))
+            sbml_res = parse_sbml(uploaded)
             st.session_state["model"] = sbml_res["cobra_model"]
 
-            # Convert genes to feature list for visualization
+            # convert genes to features for block visualization
             for idx, g in enumerate(sbml_res["genes"]):
                 feature_list.append({
                     "id": g["id"],
@@ -80,25 +83,25 @@ if uploaded is not None:
     except Exception as e:
         st.error(f"Parsing failed: {e}")
 
-    # -----------------
-    # If parsing succeeded, convert to blocks
-    # -----------------
-    if feature_list:
-        blocks = features_to_blocks(feature_list)
+# ---------------------------
+# Block conversion & visualization
+# ---------------------------
+if feature_list:
+    blocks = features_to_blocks(feature_list)
 
-        # Category filter
-        categories = sorted(set(b["category"] for b in blocks))
-        sel_cats = st.sidebar.multiselect("Show categories", options=categories, default=categories)
-        filtered_blocks = [b for b in blocks if b["category"] in sel_cats]
+    # Sidebar category filter
+    categories = sorted(set(b["category"] for b in blocks))
+    sel_cats = st.sidebar.multiselect("Show categories", options=categories, default=categories)
+    filtered_blocks = [b for b in blocks if b["category"] in sel_cats]
 
-        # Block visualization
-        st.subheader("Block visualization")
-        fig = blocks_to_figure(filtered_blocks)
-        st.plotly_chart(fig, use_container_width=True)
+    # Block visualization
+    st.subheader("Block visualization")
+    fig = blocks_to_figure(filtered_blocks)
+    st.plotly_chart(fig, use_container_width=True)
 
-        # JSON export
-        with st.expander("Block data (JSON)"):
-            st.json(filtered_blocks)
+    # JSON export
+    with st.expander("Block data (JSON)"):
+        st.json(filtered_blocks)
 
 # ---------------------------
 # PDF export
