@@ -4,25 +4,27 @@ import cobra
 import re
 from collections import Counter
 
-# -------------------------
-# FASTA PARSER
-# -------------------------
-def parse_fasta(file_like):
+def parse_fasta(handle):
     """
-    Parse FASTA file robustly for Streamlit UploadedFile or bytes.
-    Guarantees Biopython sees a true text-mode file.
+    Robust FASTA parser for Streamlit uploads:
+    - Accepts UploadedFile, bytes, or text-mode file.
+    - Guarantees Biopython sees a text-mode handle.
     """
-    if hasattr(file_like, "read"):
-        file_like.seek(0)
-        content_bytes = file_like.read()
-        handle = io.StringIO(content_bytes.decode("utf-8", errors="ignore"))
-    elif isinstance(file_like, (bytes, bytearray)):
-        handle = io.StringIO(file_like.decode("utf-8", errors="ignore"))
-    else:
-        # assume already a text-mode file-like object
-        handle = file_like
-
+    # Case 1: Streamlit UploadedFile or any file-like
+    if hasattr(handle, "read"):
+        handle.seek(0)
+        content_bytes = handle.read()
+        handle = io.TextIOWrapper(io.BytesIO(content_bytes), encoding="utf-8", errors="ignore")
+    
+    # Case 2: raw bytes
+    elif isinstance(handle, (bytes, bytearray)):
+        handle = io.TextIOWrapper(io.BytesIO(handle), encoding="utf-8", errors="ignore")
+    
+    # Case 3: already text-mode (do nothing)
+    
+    # Parse FASTA
     records = list(SeqIO.parse(handle, "fasta"))
+
     results = []
     for r in records:
         results.append({
@@ -33,8 +35,8 @@ def parse_fasta(file_like):
             "length": len(r.seq),
             "source": "fasta"
         })
+    
     return results
-
 
 # -------------------------
 # GENBANK PARSER
