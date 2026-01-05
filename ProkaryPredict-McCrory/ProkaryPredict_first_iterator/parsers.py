@@ -10,9 +10,22 @@ from collections import Counter
 def parse_fasta(file_like):
     """
     Robust FASTA parser for Streamlit:
-    - Accepts text-mode file or UploadedFile (converted to text).
+    Accepts Streamlit UploadedFile, bytes, or text-mode file.
+    Always returns text-mode handle for SeqIO.
     """
-    records = list(SeqIO.parse(file_like, "fasta"))
+    # UploadedFile or file-like
+    if hasattr(file_like, "read"):
+        file_like.seek(0)
+        content = file_like.read()
+        if isinstance(content, bytes):
+            content = content.decode("utf-8", errors="ignore")
+        handle = io.StringIO(content)
+    elif isinstance(file_like, (bytes, bytearray)):
+        handle = io.StringIO(file_like.decode("utf-8", errors="ignore"))
+    else:
+        handle = file_like  # already text-mode
+
+    records = list(SeqIO.parse(handle, "fasta"))
     results = []
     for r in records:
         results.append({
@@ -30,9 +43,21 @@ def parse_fasta(file_like):
 # -------------------------
 def parse_genbank(file_like):
     """
-    Robust GenBank parser for Streamlit.
+    Robust GenBank parser for Streamlit:
+    Accepts Streamlit UploadedFile, bytes, or text-mode file.
     """
-    records = list(SeqIO.parse(file_like, "genbank"))
+    if hasattr(file_like, "read"):
+        file_like.seek(0)
+        content = file_like.read()
+        if isinstance(content, bytes):
+            content = content.decode("utf-8", errors="ignore")
+        handle = io.StringIO(content)
+    elif isinstance(file_like, (bytes, bytearray)):
+        handle = io.StringIO(file_like.decode("utf-8", errors="ignore"))
+    else:
+        handle = file_like  # already text-mode
+
+    records = list(SeqIO.parse(handle, "genbank"))
     results = []
     for r in records:
         for feat in r.features:
@@ -81,12 +106,19 @@ def autogenerate_categories_from_model(model):
     return categories
 
 def parse_sbml(file_like):
+    """
+    Parse SBML and auto-categorize genes/reactions.
+    Accepts UploadedFile or bytes.
+    """
     try:
         model = cobra.io.read_sbml_model(file_like)
     except Exception:
+        # fallback for UploadedFile or bytes
         file_like.seek(0)
-        content_bytes = file_like.read()
-        model = cobra.io.read_sbml_model(io.StringIO(content_bytes.decode("utf-8", errors="ignore")))
+        content = file_like.read()
+        if isinstance(content, bytes):
+            content = content.decode("utf-8", errors="ignore")
+        model = cobra.io.read_sbml_model(io.StringIO(content))
 
     auto_cats = autogenerate_categories_from_model(model)
 
