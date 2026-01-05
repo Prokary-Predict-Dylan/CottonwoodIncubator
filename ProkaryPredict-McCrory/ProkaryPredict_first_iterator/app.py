@@ -1,72 +1,90 @@
+# app.py
 import streamlit as st
-import io
-import time
-import base64
-
+import json
 from parsers import parse_fasta, parse_genbank, parse_sbml
 from blocks import features_to_blocks
 from viz import blocks_to_figure
 from export_pdf import export_gene_reaction_pdf
+import io
+import base64
+import time
 
-# -------------------------
-# Page setup
-# -------------------------
-st.set_page_config(page_title="ProkaryPredict — First Iterator", layout="wide")
-st.title("ProkaryPredict — First Iterator")
+# ---------------------------
+# Helper function: ensure text mode for Biopython
+# ---------------------------
+def ensure_text_handle(file_obj):
+    """
+    Converts a Streamlit UploadedFile (or bytes) to a true text-mode file for Biopython.
+    """
+    file_obj.seek(0)  # rewind
+    content_bytes = file_obj.read()
+    text_handle = io.TextIOWrapper(io.BytesIO(content_bytes), encoding="utf-8", errors="ignore")
+    return text_handle
 
+# ---------------------------
+# Streamlit page config
+# ---------------------------
+st.set_page_config(page_title="ProkaryPredict First Iterator", layout="wide")
+st.title("ProkaryPredict — (First Iterator)")
+
+# Ensure export_request exists
 if "export_request" not in st.session_state:
     st.session_state["export_request"] = None
 
-# -------------------------
-# Sidebar
-# -------------------------
+# ---------------------------
+# Sidebar: file upload & export
+# ---------------------------
 with st.sidebar:
-    st.header("Upload genome/model")
-    uploaded_file = st.file_uploader(
-        "Upload GenBank (.gb/.gbk), FASTA (.fa/.fasta), or SBML (.xml/.sbml)",
+    st.header("Upload files")
+    uploaded = st.file_uploader(
+        "Upload GenBank (.gb/.gbk) / FASTA / SBML (.xml/.sbml)",
         accept_multiple_files=False
     )
-
     st.markdown("---")
     st.header("Export")
-    export_name = st.text_input("PDF filename (without extension)", value="prokarypredict_report")
+    export_name = st.text_input("PDF filename (without ext)", value="prokarypredict_report")
     if st.button("Export PDF"):
         st.session_state["export_request"] = time.time()
 
-st.info("Upload a GenBank, FASTA, or SBML file. Features will be parsed and displayed as blocks.")
+st.info("Upload a GenBank, FASTA, or SBML file. Parsed features will be converted to blocks and displayed.")
 
-# -------------------------
-# Helper: convert to text-mode handle
-# -------------------------
-def get_text_handle(file_obj):
-    """Convert Streamlit UploadedFile (or bytes) into proper text-mode handle for Biopython."""
-    file_obj.seek(0)
-    content_bytes = file_obj.read()
-    return io.TextIOWrapper(io.BytesIO(content_bytes), encoding="utf-8", errors="ignore")
-
-# -------------------------
-# File handling
-# -------------------------
+# ---------------------------
+# File Handling: FASTA, GenBank, SBML
+# ---------------------------
 feature_list = []
-model_obj = None
 
-if uploaded_file is not None:
-    fn = uploaded_file.name.lower()
-    try:
-        if fn.endswith((".gb", ".gbk", ".genbank")):
-            handle = get_text_handle(uploaded_file)
+if uploaded is not None:
+    fn = uploaded.name.lower()
+
+    # ---------------------------
+    # GenBank parsing
+    # ---------------------------
+    if fn.endswith((".gb", ".gbk", ".genbank")):
+        try:
+            handle = ensure_text_handle(uploaded)
             feature_list = parse_genbank(handle)
             st.success(f"Parsed GenBank: {len(feature_list)} features found")
+        except Exception as e:
+            st.error(f"GenBank parsing failed: {e}")
 
-        elif fn.endswith((".fa", ".fasta")):
-            handle = get_text_handle(uploaded_file)
+    # ---------------------------
+    # FASTA parsing
+    # ---------------------------
+    elif fn.endswith((".fa", ".fasta")):
+        try:
+            handle = ensure_text_handle(uploaded)
             feature_list = parse_fasta(handle)
             st.success(f"Parsed FASTA: {len(feature_list)} sequences")
+        except Exception as e:
+            st.error(f"FASTA parsing failed: {e}")
 
-        elif fn.endswith((".xml", ".sbml")):
-            sbml_res = parse_sbml(io.BytesIO(uploaded_file.getvalue()))
-            model_obj = sbml_res["cobra_model"]
-            st.session_state["model"] = model_obj
+    # ---------------------------
+    # SBML parsing
+    # ---------------------------
+    elif fn.endswith((".xml", ".sbml")):
+        try:
+            sbml_res = parse_sbml(io.BytesIO(uploaded.getvalue()))
+            st.session_state["model"] = sbml_res["cobra_model"]
 
             for idx, g in enumerate(sbml_res["genes"]):
                 feature_list.append({
@@ -80,27 +98,26 @@ if uploaded_file is not None:
                     "source": "sbml",
                     "reactions": g.get("reactions", [])
                 })
-
             st.success(f"Parsed SBML: {len(feature_list)} genes")
+        except Exception as e:
+            st.error(f"SBML parsing failed: {e}")
+    else:
+        st.error("Unsupported file type. Upload FASTA, GenBank, or SBML.")
 
-        else:
-            st.error("Unsupported file type. Upload FASTA, GenBank, or SBML.")
-
-    except Exception as e:
-        st.error(f"File parsing failed: {e}")
-
-# -------------------------
-# Convert features → blocks
-# -------------------------
+# ---------------------------
+# Convert features to blocks and display
+# ---------------------------
 if feature_list:
     blocks = features_to_blocks(feature_list)
 
     # Sidebar category filter
     categories = sorted(set(b["category"] for b in blocks))
-    sel_cats = st.sidebar.multiselect("Show categories", options=categories, default=categories)
+    sel_cats = st.sidebar.multiselect(
+        "Show categories", options=categories, default=categories
+    )
     filtered_blocks = [b for b in blocks if b["category"] in sel_cats]
 
-    # Visualization
+    # Block visualization
     st.subheader("Block visualization")
     fig = blocks_to_figure(filtered_blocks)
     st.plotly_chart(fig, use_container_width=True)
@@ -109,15 +126,16 @@ if feature_list:
     with st.expander("Block data (JSON)"):
         st.json(filtered_blocks)
 
-# -------------------------
-# PDF export
-# -------------------------
-if st.session_state.get("export_request") and model_obj is not None:
+# ---------------------------
+# PDF Export — Gene → Reaction mapping
+# ---------------------------
+if st.session_state.get("export_request") and 'model' in st.session_state:
+    model = st.session_state['model']
     try:
         pdf_bytes = export_gene_reaction_pdf(
-            model_obj,
+            model,
             metadata={
-                "source_file": uploaded_file.name if uploaded_file else "unknown",
+                "source_file": uploaded.name if uploaded is not None else "unknown",
                 "exported_at": time.strftime("%Y-%m-%d %H:%M:%S")
             }
         )
