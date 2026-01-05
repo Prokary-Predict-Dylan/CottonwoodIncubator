@@ -57,11 +57,20 @@ if uploaded is not None:
         # ------------------------------
         # FASTA
         # ------------------------------
-        elif fn.endswith((".fa", ".fasta")):
-            feature_list = parse_fasta(
-                io.StringIO(content.decode("utf-8", errors="ignore"))
-            )
-            st.success(f"Parsed FASTA: {len(feature_list)} sequences")
+        elif fn.endswith((".fa", ".fasta", ".txt")):  # now includes text files
+            try:
+                # Ensure text-mode handle
+                if isinstance(uploaded, bytes):
+                    handle = io.StringIO(uploaded.decode("utf-8", errors="ignore"))
+                else:
+                    uploaded.seek(0)
+                    handle = io.StringIO(uploaded.read().decode("utf-8", errors="ignore"))
+        
+                feature_list = parse_fasta(handle)
+                st.success(f"Parsed FASTA/TXT: {len(feature_list)} sequences")
+            except Exception as e:
+                st.error(f"FASTA parsing failed: {e}")
+                feature_list = []
 
         # ------------------------------
         # SBML
