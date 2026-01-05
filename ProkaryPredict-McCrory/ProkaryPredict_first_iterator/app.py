@@ -95,26 +95,25 @@ if uploaded is not None:
             st.success(f"Parsed SBML: {len(feature_list)} genes")
 
         # ------------------------------
-        # Unknown → heuristics
+        # Unknown file → heuristics
         # ------------------------------
         else:
+            st.warning("Unknown extension; attempting heuristics...")
             try:
-                feature_list = parse_fasta(
-                    io.StringIO(content.decode("utf-8", errors="ignore"))
-                )
+                # Try FASTA first
+                content.seek(0)
+                handle = io.StringIO(content.read().decode("utf-8", errors="ignore"))
+                feature_list = parse_fasta(handle)
                 st.success(f"Parsed FASTA heuristically: {len(feature_list)} sequences")
             except Exception:
                 try:
-                    feature_list = parse_genbank(
-                        io.StringIO(content.decode("utf-8", errors="ignore"))
-                    )
-                    st.success(f"Parsed GenBank heuristically: {len(feature_list)} features")
+                    content.seek(0)
+                    handle = io.StringIO(content.read().decode("utf-8", errors="ignore"))
+                    feature_list = parse_genbank(handle)
+                    st.success(f"Parsed GenBank heuristically: {len(feature_list)} features found")
                 except Exception:
                     st.error("Could not parse file.")
                     feature_list = []
-
-    except Exception as e:
-        st.error(f"Parsing error: {e}")
 
     # -----------------------------------------------------------
     # Block Conversion
