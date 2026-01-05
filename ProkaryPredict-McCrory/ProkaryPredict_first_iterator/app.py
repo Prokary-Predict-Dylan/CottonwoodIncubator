@@ -35,19 +35,26 @@ with st.sidebar:
 st.info("Upload a GenBank, FASTA, or SBML file. Parsed features will be converted to blocks and displayed.")
 
 # -----------------------------------------------------------
-# File Handling
+# File Handling — Robust for FASTA, GenBank, SBML, TXT
 # -----------------------------------------------------------
 if uploaded is not None:
     fn = uploaded.name.lower()
-    content = uploaded.read()
     feature_list = []
 
-    # Always get a preview for heuristics
-    preview_text = content[:5000].decode("utf-8", errors="ignore").lower()
+    # Helper: convert UploadedFile to text-mode handle
+    def get_text_handle(uploaded_file):
+        """
+        Convert UploadedFile to a text-mode StringIO handle for Biopython.
+        """
+        uploaded_file.seek(0)
+        content = uploaded_file.read()
+        if isinstance(content, bytes):
+            text_content = content.decode("utf-8", errors="ignore")
+        else:
+            text_content = str(content)
+        return io.StringIO(text_content)
 
-    # ------------------------------
-    # Helper: fallback for plain text
-    # ------------------------------
+    # Helper: fallback parser for plain text files (one sequence per line)
     def parse_plain_text(handle):
         sequences = []
         for i, line in enumerate(handle):
@@ -63,12 +70,20 @@ if uploaded is not None:
                 })
         return sequences
 
+    # Prepare preview text for heuristics
+    try:
+        preview_text = uploaded.read(5000).decode("utf-8", errors="ignore").lower()
+    except Exception:
+        preview_text = ""
+    uploaded.seek(0)
+
     # ------------------------------
     # GenBank
     # ------------------------------
     if fn.endswith((".gb", ".gbk", ".genbank")):
         try:
-            feature_list = parse_genbank(io.StringIO(content.decode("utf-8", errors="ignore")))
+            handle = get_text_handle(uploaded)
+            feature_list = parse_genbank(handle)
             st.success(f"Parsed GenBank: {len(feature_list)} features found")
         except Exception as e:
             st.error(f"GenBank parsing failed: {e}")
@@ -79,21 +94,24 @@ if uploaded is not None:
     # ------------------------------
     elif fn.endswith((".fa", ".fasta", ".txt")):
         try:
-            handle = io.StringIO(content.decode("utf-8", errors="ignore"))
+            handle = get_text_handle(uploaded)
             feature_list = parse_fasta(handle)
             st.success(f"Parsed FASTA/TXT: {len(feature_list)} sequences")
         except Exception:
-            # Fallback: treat each line as a sequence
-            handle = io.StringIO(content.decode("utf-8", errors="ignore"))
-            feature_list = parse_plain_text(handle)
-            st.success(f"Parsed plain text: {len(feature_list)} sequences")
+            try:
+                handle = get_text_handle(uploaded)
+                feature_list = parse_plain_text(handle)
+                st.success(f"Parsed plain text: {len(feature_list)} sequences")
+            except Exception as e:
+                st.error(f"Could not parse TXT/FASTA: {e}")
+                feature_list = []
 
     # ------------------------------
     # SBML
     # ------------------------------
     elif fn.endswith((".xml", ".sbml")) or "<sbml" in preview_text:
         try:
-            sbml_res = parse_sbml(io.BytesIO(content))
+            sbml_res = parse_sbml(io.BytesIO(uploaded.read()))
             st.session_state["model"] = sbml_res["cobra_model"]
 
             for idx, g in enumerate(sbml_res["genes"]):
@@ -120,17 +138,17 @@ if uploaded is not None:
     else:
         st.warning("Unknown extension; attempting heuristics...")
         try:
-            handle = io.StringIO(content.decode("utf-8", errors="ignore"))
+            handle = get_text_handle(uploaded)
             feature_list = parse_fasta(handle)
             st.success(f"Parsed FASTA heuristically: {len(feature_list)} sequences")
         except Exception:
             try:
-                handle = io.StringIO(content.decode("utf-8", errors="ignore"))
+                handle = get_text_handle(uploaded)
                 feature_list = parse_genbank(handle)
                 st.success(f"Parsed GenBank heuristically: {len(feature_list)} features found")
             except Exception:
                 try:
-                    handle = io.StringIO(content.decode("utf-8", errors="ignore"))
+                    handle = get_text_handle(uploaded)
                     feature_list = parse_plain_text(handle)
                     st.success(f"Parsed plain text heuristically: {len(feature_list)} sequences")
                 except Exception:
@@ -138,13 +156,9 @@ if uploaded is not None:
                     feature_list = []
 
     # ------------------------------
-    # Block Conversion
+    # Block Conversion & Filtering
     # ------------------------------
     blocks = features_to_blocks(feature_list)
-
-    # ------------------------------
-    # Category Filter
-    # ------------------------------
     categories = sorted(set(b["category"] for b in blocks))
     sel_cats = st.sidebar.multiselect(
         "Show categories", options=categories, default=categories
