@@ -6,10 +6,20 @@ import re
 from collections import defaultdict, Counter
 
 # ---------------------------------------------------------
-# FASTA PARSER
+# FASTA PARSER (text-mode safe)
 # ---------------------------------------------------------
 def parse_fasta(handle):
+    # If bytes or binary stream, convert to text
+    if isinstance(handle, (bytes, bytearray)):
+        handle = io.StringIO(handle.decode("utf-8", errors="ignore"))
+    elif hasattr(handle, "read"):
+        try:
+            handle.read(0)  # test text-mode
+        except TypeError:
+            handle = io.StringIO(handle.read().decode("utf-8", errors="ignore"))
+
     records = list(SeqIO.parse(handle, "fasta"))
+
     results = []
     for r in records:
         results.append({
@@ -21,6 +31,7 @@ def parse_fasta(handle):
             "source": "fasta"
         })
     return results
+
 
 # ---------------------------------------------------------
 # GENBANK PARSER
