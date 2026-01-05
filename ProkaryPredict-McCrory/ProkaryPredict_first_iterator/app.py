@@ -90,8 +90,10 @@ if uploaded is not None:
         else:
             st.warning("Unknown extension; attempting FASTA → GenBank fallback")
             try:
-                feature_list = parse_fasta(io.StringIO(text))
-                st.success(f"Parsed FASTA heuristically: {len(feature_list)} sequences")
+                feature_list = parse_fasta(
+                    io.StringIO(content.decode("utf-8", errors="ignore"))
+                )
+
             except Exception:
                 feature_list = parse_genbank(io.StringIO(text))
                 st.success(f"Parsed GenBank heuristically: {len(feature_list)} features")
