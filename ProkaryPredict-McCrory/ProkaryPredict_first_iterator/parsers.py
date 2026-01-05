@@ -1,5 +1,3 @@
-def parse_fasta(handle):
-    raise RuntimeError("MY parse_fasta WAS CALLED")
 # parsers.py
 from Bio import SeqIO
 import io
