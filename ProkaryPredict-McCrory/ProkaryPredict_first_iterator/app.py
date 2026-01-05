@@ -42,16 +42,16 @@ if uploaded is not None:
     feature_list = []
 
     # ------------------------------
-    # Helper: Convert UploadedFile to text-mode StringIO
+    # Helper: convert uploaded file to proper text-mode handle
     # ------------------------------
-    def get_text_handle(uploaded_file):
+    def get_text_handle(file_obj):
         """
-        Converts Streamlit UploadedFile to a text-mode file for Biopython.
+        Converts Streamlit UploadedFile (or bytes) to a text-mode file for Biopython.
         """
-        uploaded_file.seek(0)
-        content_bytes = uploaded_file.getvalue()  # raw bytes
-        text_content = content_bytes.decode("utf-8", errors="ignore")
-        return io.StringIO(text_content)
+        import io
+        file_obj.seek(0)
+        content_bytes = file_obj.read()
+        return io.TextIOWrapper(io.BytesIO(content_bytes), encoding="utf-8", errors="ignore")
 
     # ------------------------------
     # GenBank
@@ -108,93 +108,23 @@ if uploaded is not None:
     # ------------------------------
     if feature_list:
         blocks = features_to_blocks(feature_list)
+
+        # Sidebar category filter
         categories = sorted(set(b["category"] for b in blocks))
         sel_cats = st.sidebar.multiselect(
             "Show categories", options=categories, default=categories
         )
         filtered_blocks = [b for b in blocks if b["category"] in sel_cats]
 
+        # Block visualization
         st.subheader("Block visualization")
         fig = blocks_to_figure(filtered_blocks)
         st.plotly_chart(fig, use_container_width=True)
 
+        # JSON export
         with st.expander("Block data (JSON)"):
             st.json(filtered_blocks)
 
-    # -----------------------------------------------------------
-    # Blockly Workspace — Genome Assembly
-    # -----------------------------------------------------------
-    st.subheader("Block workspace (genome assembly)")
-
-    blockly_xml_blocks = ""
-    for i, gene in enumerate(filtered_blocks):
-        color = gene.get("color", "#cccccc")
-        block_id = f"gene_{i}"
-
-        x_pos = 20 + i * 120  # Horizontal layout spacing
-
-        # Emit each block separately (no nested <next>)
-        block_xml = (
-            f'<block type="gene_block" id="{block_id}" x="{x_pos}" y="20">'
-            f'<field name="GENE">{gene["label"]}</field>'
-            f'<field name="COLOR">{color}</field>'
-            '</block>'
-        )
-
-        blockly_xml_blocks += block_xml
-
-    # Use f-string to interpolate blockly_xml_blocks correctly
-    blockly_html = f"""
-    <!doctype html>
-    <html>
-      <head>
-        <meta charset="utf-8">
-        <script src="https://unpkg.com/blockly/blockly.min.js"></script>
-        <style>
-            html, body {{ height: 100%; margin: 0; }}
-            #blocklyDiv {{ height: 520px; width: 100%; }}
-        </style>
-      </head>
-      <body>
-        <div id="blocklyDiv"></div>
-        <xml id="toolbox" style="display:none">
-          <category name="Genome">
-            <block type="gene_block"></block>
-          </category>
-        </xml>
-        <script>
-          Blockly.Blocks['gene_block'] = {{
-            init: function() {{
-              var geneName = this.getFieldValue('GENE') || 'Gene';
-              var geneColor = this.getFieldValue('COLOR') || '#cccccc';
-              this.appendDummyInput()
-                  .appendField(new Blockly.FieldTextInput(geneName), "GENE")
-                  .appendField(new Blockly.FieldTextInput(geneColor), "COLOR");
-              this.setPreviousStatement(true, null);
-              this.setNextStatement(true, null);
-              this.setColour(this.getFieldValue('COLOR') || '#cccccc');
-            }}
-          }};
-          var workspace = Blockly.inject('blocklyDiv', {{
-              toolbox: document.getElementById('toolbox')
-          }});
-          var xmlText = `<xml>{blockly_xml_blocks}</xml>`;
-          var xml = Blockly.Xml.textToDom(xmlText);
-          Blockly.Xml.domToWorkspace(xml, workspace);
-        </script>
-      </body>
-    </html>
-    """
-    st.components.v1.html(blockly_html, height=550, scrolling=True)
-
-    # -----------------------------------------------------------
-    # Download JSON Button
-    # -----------------------------------------------------------
-    if st.button("Download blocks JSON"):
-        j = json.dumps(filtered_blocks, indent=2)
-        b64 = base64.b64encode(j.encode()).decode()
-        href = f'<a href="data:application/json;base64,{b64}" download="{uploaded.name}_blocks.json">Download blocks JSON</a>'
-        st.markdown(href, unsafe_allow_html=True)
 
 # -----------------------------------------------------------
 # PDF Export — Gene → Reaction mapping
