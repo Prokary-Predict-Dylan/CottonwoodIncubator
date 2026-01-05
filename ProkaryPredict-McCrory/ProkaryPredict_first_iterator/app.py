@@ -89,22 +89,22 @@ if uploaded is not None:
         # ------------------------------
         # Unknown file → heuristics
         # ------------------------------
-        else:
+          else:
             st.warning("Unknown extension; attempting heuristics...")
             try:
-                feature_list = parse_genbank(io.BytesIO(content))
-                st.success(f"Parsed GenBank heuristically: {len(feature_list)} features found")
+                feature_list = parse_fasta(content)
+                st.success(f"Parsed FASTA heuristically: {len(feature_list)} sequences")
             except Exception:
                 try:
-                    feature_list = parse_fasta(io.BytesIO(content))
-                    st.success(f"Parsed FASTA heuristically: {len(feature_list)} sequences")
+                    feature_list = parse_genbank(
+                        io.StringIO(content.decode("utf-8", errors="ignore"))
+                    )
+                    st.success(f"Parsed GenBank heuristically: {len(feature_list)} features found")
                 except Exception:
-                    st.error("Could not parse file. Upload a valid GenBank, FASTA, or SBML file.")
+                    st.error("Could not parse file.")
                     feature_list = []
-
-    except Exception as e:
-        st.error(f"Parsing error: {e}")
-        feature_list = []
+        
+                feature_list = []
 
     # -----------------------------------------------------------
     # Block Conversion
