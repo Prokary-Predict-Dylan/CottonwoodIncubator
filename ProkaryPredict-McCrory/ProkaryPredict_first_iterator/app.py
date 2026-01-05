@@ -1,4 +1,3 @@
-# app.py
 import streamlit as st
 import json
 from parsers import parse_fasta, parse_genbank, parse_sbml
@@ -37,39 +36,8 @@ with st.sidebar:
 st.info("Upload a GenBank, FASTA, or SBML file. Parsed features will be converted to blocks and displayed.")
 
 # -----------------------------
-# Sidebar file upload + export
-# -----------------------------
-with st.sidebar:
-    st.header("Upload files")
-    uploaded = st.file_uploader(
-        "Upload GenBank (.gb/.gbk) / FASTA / SBML (.xml/.sbml)",
-        accept_multiple_files=False
-    )
-    st.markdown("---")
-    st.header("Export")
-    export_name = st.text_input("PDF filename (without ext)", value="prokarypredict_report")
-
-    if st.button("Export PDF"):
-        st.session_state["export_request"] = time.time()
-
-st.info("Upload a GenBank, FASTA, or SBML file. Parsed features will be converted to blocks and displayed.")
-
-# -----------------------------------------------------------
-# Helper: convert any Streamlit uploaded file to text-mode
-# -----------------------------------------------------------
-def get_text_handle(uploaded_file):
-    """
-    Converts Streamlit UploadedFile (binary) to a text-mode file
-    so Biopython SeqIO can parse it.
-    """
-    import io
-    uploaded_file.seek(0)  # rewind
-    content_bytes = uploaded_file.read()
-    return io.TextIOWrapper(io.BytesIO(content_bytes), encoding="utf-8", errors="ignore")
-
-# -----------------------------------------------------------
 # File handling: FASTA, GenBank, SBML
-# -----------------------------------------------------------
+# -----------------------------
 if uploaded is not None:
     fn = uploaded.name.lower()
     feature_list = []
@@ -79,8 +47,7 @@ if uploaded is not None:
     # ------------------------------
     if fn.endswith((".gb", ".gbk", ".genbank")):
         try:
-            handle = get_text_handle(uploaded)
-            feature_list = parse_genbank(handle)
+            feature_list = parse_genbank(uploaded)  # parser handles conversion
             st.success(f"Parsed GenBank: {len(feature_list)} features found")
         except Exception as e:
             st.error(f"GenBank parsing failed: {e}")
@@ -90,8 +57,7 @@ if uploaded is not None:
     # ------------------------------
     elif fn.endswith((".fa", ".fasta")):
         try:
-            handle = get_text_handle(uploaded)  # << critical step
-            feature_list = parse_fasta(handle)
+            feature_list = parse_fasta(uploaded)  # parser handles conversion
             st.success(f"Parsed FASTA: {len(feature_list)} sequences")
         except Exception as e:
             st.error(f"FASTA parsing failed: {e}")
