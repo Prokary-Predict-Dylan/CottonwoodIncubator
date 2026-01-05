@@ -42,40 +42,57 @@ if uploaded is not None:
     content = uploaded.read()
     feature_list = []
 
-    try:
-        preview_text = content[:5000].decode("utf-8", errors="ignore").lower()
+    # Always get a preview for heuristics
+    preview_text = content[:5000].decode("utf-8", errors="ignore").lower()
 
-        # ------------------------------
-        # GenBank
-        # ------------------------------
-        if fn.endswith((".gb", ".gbk", ".genbank")):
-            feature_list = parse_genbank(
-                io.StringIO(content.decode("utf-8", errors="ignore"))
-            )
+    # ------------------------------
+    # Helper: fallback for plain text
+    # ------------------------------
+    def parse_plain_text(handle):
+        sequences = []
+        for i, line in enumerate(handle):
+            line = line.strip()
+            if line:
+                sequences.append({
+                    "id": f"seq_{i+1}",
+                    "name": f"seq_{i+1}",
+                    "description": "",
+                    "sequence": line,
+                    "length": len(line),
+                    "source": "txt"
+                })
+        return sequences
+
+    # ------------------------------
+    # GenBank
+    # ------------------------------
+    if fn.endswith((".gb", ".gbk", ".genbank")):
+        try:
+            feature_list = parse_genbank(io.StringIO(content.decode("utf-8", errors="ignore")))
             st.success(f"Parsed GenBank: {len(feature_list)} features found")
+        except Exception as e:
+            st.error(f"GenBank parsing failed: {e}")
+            feature_list = []
 
-        # ------------------------------
-        # FASTA
-        # ------------------------------
-        elif fn.endswith((".fa", ".fasta", ".txt")):  # now includes text files
-            try:
-                # Ensure text-mode handle
-                if isinstance(uploaded, bytes):
-                    handle = io.StringIO(uploaded.decode("utf-8", errors="ignore"))
-                else:
-                    uploaded.seek(0)
-                    handle = io.StringIO(uploaded.read().decode("utf-8", errors="ignore"))
-        
-                feature_list = parse_fasta(handle)
-                st.success(f"Parsed FASTA/TXT: {len(feature_list)} sequences")
-            except Exception as e:
-                st.error(f"FASTA parsing failed: {e}")
-                feature_list = []
+    # ------------------------------
+    # FASTA / TXT
+    # ------------------------------
+    elif fn.endswith((".fa", ".fasta", ".txt")):
+        try:
+            handle = io.StringIO(content.decode("utf-8", errors="ignore"))
+            feature_list = parse_fasta(handle)
+            st.success(f"Parsed FASTA/TXT: {len(feature_list)} sequences")
+        except Exception:
+            # Fallback: treat each line as a sequence
+            handle = io.StringIO(content.decode("utf-8", errors="ignore"))
+            feature_list = parse_plain_text(handle)
+            st.success(f"Parsed plain text: {len(feature_list)} sequences")
 
-        # ------------------------------
-        # SBML
-        # ------------------------------
-        elif fn.endswith((".xml", ".sbml")) or "<sbml" in preview_text:
+    # ------------------------------
+    # SBML
+    # ------------------------------
+    elif fn.endswith((".xml", ".sbml")) or "<sbml" in preview_text:
+        try:
             sbml_res = parse_sbml(io.BytesIO(content))
             st.session_state["model"] = sbml_res["cobra_model"]
 
@@ -93,27 +110,59 @@ if uploaded is not None:
                 })
 
             st.success(f"Parsed SBML: {len(feature_list)} genes")
+        except Exception as e:
+            st.error(f"SBML parsing failed: {e}")
+            feature_list = []
 
-        # ------------------------------
-        # Unknown file → heuristics
-        # ------------------------------
-        else:
-            st.warning("Unknown extension; attempting heuristics...")
+    # ------------------------------
+    # Unknown file → heuristics
+    # ------------------------------
+    else:
+        st.warning("Unknown extension; attempting heuristics...")
+        try:
+            handle = io.StringIO(content.decode("utf-8", errors="ignore"))
+            feature_list = parse_fasta(handle)
+            st.success(f"Parsed FASTA heuristically: {len(feature_list)} sequences")
+        except Exception:
             try:
-                # Try FASTA first
-                content.seek(0)
-                handle = io.StringIO(content.read().decode("utf-8", errors="ignore"))
-                feature_list = parse_fasta(handle)
-                st.success(f"Parsed FASTA heuristically: {len(feature_list)} sequences")
+                handle = io.StringIO(content.decode("utf-8", errors="ignore"))
+                feature_list = parse_genbank(handle)
+                st.success(f"Parsed GenBank heuristically: {len(feature_list)} features found")
             except Exception:
                 try:
-                    content.seek(0)
-                    handle = io.StringIO(content.read().decode("utf-8", errors="ignore"))
-                    feature_list = parse_genbank(handle)
-                    st.success(f"Parsed GenBank heuristically: {len(feature_list)} features found")
+                    handle = io.StringIO(content.decode("utf-8", errors="ignore"))
+                    feature_list = parse_plain_text(handle)
+                    st.success(f"Parsed plain text heuristically: {len(feature_list)} sequences")
                 except Exception:
                     st.error("Could not parse file.")
                     feature_list = []
+
+    # ------------------------------
+    # Block Conversion
+    # ------------------------------
+    blocks = features_to_blocks(feature_list)
+
+    # ------------------------------
+    # Category Filter
+    # ------------------------------
+    categories = sorted(set(b["category"] for b in blocks))
+    sel_cats = st.sidebar.multiselect(
+        "Show categories", options=categories, default=categories
+    )
+    filtered_blocks = [b for b in blocks if b["category"] in sel_cats]
+
+    # ------------------------------
+    # Visualization
+    # ------------------------------
+    st.subheader("Block visualization")
+    fig = blocks_to_figure(filtered_blocks)
+    st.plotly_chart(fig, use_container_width=True)
+
+    # ------------------------------
+    # JSON Export
+    # ------------------------------
+    with st.expander("Block data (JSON)"):
+        st.json(filtered_blocks)
 
     # -----------------------------------------------------------
     # Block Conversion
