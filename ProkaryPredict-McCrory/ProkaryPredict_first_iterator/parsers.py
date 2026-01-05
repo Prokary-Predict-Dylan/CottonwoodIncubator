@@ -7,15 +7,21 @@ from collections import Counter
 # -------------------------
 # FASTA PARSER
 # -------------------------
-def parse_fasta(handle):
-    """Parse FASTA file robustly, converting bytes or UploadedFile to text-mode."""
-    if hasattr(handle, "read"):
-        handle.seek(0)
-        content_bytes = handle.read()
-        handle = io.TextIOWrapper(io.BytesIO(content_bytes), encoding="utf-8", errors="ignore")
-    elif isinstance(handle, (bytes, bytearray)):
-        handle = io.TextIOWrapper(io.BytesIO(handle), encoding="utf-8", errors="ignore")
-    
+def parse_fasta(file_like):
+    """
+    Parse FASTA file robustly for Streamlit UploadedFile or bytes.
+    Guarantees Biopython sees a true text-mode file.
+    """
+    if hasattr(file_like, "read"):
+        file_like.seek(0)
+        content_bytes = file_like.read()
+        handle = io.StringIO(content_bytes.decode("utf-8", errors="ignore"))
+    elif isinstance(file_like, (bytes, bytearray)):
+        handle = io.StringIO(file_like.decode("utf-8", errors="ignore"))
+    else:
+        # assume already a text-mode file-like object
+        handle = file_like
+
     records = list(SeqIO.parse(handle, "fasta"))
     results = []
     for r in records:
@@ -29,17 +35,22 @@ def parse_fasta(handle):
         })
     return results
 
+
 # -------------------------
 # GENBANK PARSER
 # -------------------------
-def parse_genbank(handle):
-    if isinstance(handle, (bytes, bytearray)):
-        handle = io.StringIO(handle.decode("utf-8", errors="ignore"))
-    elif hasattr(handle, "read"):
-        try:
-            handle.read(0)
-        except TypeError:
-            handle = io.StringIO(handle.read().decode("utf-8", errors="ignore"))
+def parse_genbank(file_like):
+    """
+    Parse GenBank files robustly for Streamlit UploadedFile or bytes.
+    """
+    if hasattr(file_like, "read"):
+        file_like.seek(0)
+        content_bytes = file_like.read()
+        handle = io.StringIO(content_bytes.decode("utf-8", errors="ignore"))
+    elif isinstance(file_like, (bytes, bytearray)):
+        handle = io.StringIO(file_like.decode("utf-8", errors="ignore"))
+    else:
+        handle = file_like
 
     records = list(SeqIO.parse(handle, "genbank"))
     results = []
@@ -60,12 +71,21 @@ def parse_genbank(handle):
                 })
     return results
 
+
 # -------------------------
 # SBML PARSER
 # -------------------------
 def autogenerate_categories_from_model(model):
-    categories = { "energy_systems": set(), "core_metabolism": set(), "biosynthesis": set(),
-                   "transport": set(), "regulation": set() }
+    """
+    Auto-generate functional categories for SBML reactions.
+    """
+    categories = {
+        "energy_systems": set(),
+        "core_metabolism": set(),
+        "biosynthesis": set(),
+        "transport": set(),
+        "regulation": set()
+    }
     heuristics = {
         "energy_systems": ["photosystem", "psa", "psb", "ndh", "cytochrome", "oxidase", "electron", "respir", "atp", "ferro"],
         "core_metabolism": ["glycolysis", "tca", "krebs", "gdh", "gap", "pyk"],
@@ -84,14 +104,20 @@ def autogenerate_categories_from_model(model):
             token_counts[t] += 1
     return categories
 
+
 def parse_sbml(file_like):
+    """
+    Parse an SBML file and auto-categorize genes/reactions.
+    """
     try:
         model = cobra.io.read_sbml_model(file_like)
     except Exception:
         file_like.seek(0)
-        model = cobra.io.read_sbml_model(io.StringIO(file_like.read().decode("utf-8")))
+        content_bytes = file_like.read()
+        model = cobra.io.read_sbml_model(io.StringIO(content_bytes.decode("utf-8", errors="ignore")))
 
     auto_cats = autogenerate_categories_from_model(model)
+
     genes = []
     for g in model.genes:
         reaction_text = "; ".join([r.name or r.id for r in g.reactions]).lower()
@@ -103,7 +129,16 @@ def parse_sbml(file_like):
             "reactions": [r.id for r in g.reactions],
             "source": "sbml"
         })
-    reactions = [{"id": r.id, "name": r.name or r.id, "bounds": (r.lower_bound, r.upper_bound),
-                  "genes": [g.id for g in r.genes], "source": "sbml"} for r in model.reactions]
+
+    reactions = [
+        {
+            "id": r.id,
+            "name": r.name or r.id,
+            "bounds": (r.lower_bound, r.upper_bound),
+            "genes": [g.id for g in r.genes],
+            "source": "sbml"
+        }
+        for r in model.reactions
+    ]
 
     return {"cobra_model": model, "genes": genes, "reactions": reactions, "auto_categories": auto_cats}
