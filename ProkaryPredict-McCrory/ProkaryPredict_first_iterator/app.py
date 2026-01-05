@@ -9,7 +9,7 @@ import io, base64, time
 # ---------------------------
 # Streamlit page config
 # ---------------------------
-st.set_page_config(page_title="ProkaryPredict First Iterator", layout="wide")
+st.set_page_config(page_title="ProkaryPredict First Iterator TEST", layout="wide")
 st.title("ProkaryPredict — (First Iterator)")
 
 # Initialize export_request
