@@ -7,23 +7,12 @@ from collections import Counter
 # -------------------------
 # FASTA PARSER
 # -------------------------
-def parse_fasta(handle):
+def parse_fasta(file_like):
     """
-    Robust FASTA parser for Streamlit UploadedFile, bytes, or text.
-    Always gives SeqIO a proper text-mode file-like object.
+    Robust FASTA parser for Streamlit:
+    - Accepts text-mode file or UploadedFile (converted to text).
     """
-    # Streamlit UploadedFile or bytes
-    if hasattr(handle, "read"):  # file-like
-        handle.seek(0)
-        text_handle = io.StringIO(handle.read().decode("utf-8", errors="ignore"))
-    elif isinstance(handle, (bytes, bytearray)):
-        text_handle = io.StringIO(handle.decode("utf-8", errors="ignore"))
-    else:
-        text_handle = handle  # already text-mode
-
-    # Parse FASTA
-    records = list(SeqIO.parse(text_handle, "fasta"))
-
+    records = list(SeqIO.parse(file_like, "fasta"))
     results = []
     for r in records:
         results.append({
@@ -39,19 +28,11 @@ def parse_fasta(handle):
 # -------------------------
 # GENBANK PARSER
 # -------------------------
-def parse_genbank(handle):
+def parse_genbank(file_like):
     """
-    Robust GenBank parser for Streamlit UploadedFile, bytes, or text.
+    Robust GenBank parser for Streamlit.
     """
-    if hasattr(handle, "read"):  # file-like
-        handle.seek(0)
-        text_handle = io.StringIO(handle.read().decode("utf-8", errors="ignore"))
-    elif isinstance(handle, (bytes, bytearray)):
-        text_handle = io.StringIO(handle.decode("utf-8", errors="ignore"))
-    else:
-        text_handle = handle
-
-    records = list(SeqIO.parse(text_handle, "genbank"))
+    records = list(SeqIO.parse(file_like, "genbank"))
     results = []
     for r in records:
         for feat in r.features:
@@ -70,14 +51,10 @@ def parse_genbank(handle):
                 })
     return results
 
-
 # -------------------------
 # SBML PARSER
 # -------------------------
 def autogenerate_categories_from_model(model):
-    """
-    Auto-generate functional categories for SBML reactions.
-    """
     categories = {
         "energy_systems": set(),
         "core_metabolism": set(),
@@ -104,9 +81,6 @@ def autogenerate_categories_from_model(model):
     return categories
 
 def parse_sbml(file_like):
-    """
-    Parse an SBML file and auto-categorize genes/reactions.
-    """
     try:
         model = cobra.io.read_sbml_model(file_like)
     except Exception:
