@@ -8,32 +8,32 @@ from collections import defaultdict, Counter
 # ---------------------------------------------------------
 # FASTA PARSER (ABSOLUTE TEXT-MODE ENFORCEMENT)
 # ---------------------------------------------------------
-from Bio import SeqIO
 import io
+from Bio import SeqIO
 
 def parse_fasta(handle):
     """
-    Biopython FASTA parsing — ensures text-mode input.
-    Works for Streamlit UploadedFile, BytesIO, or bytes.
+    Parse a FASTA file robustly for Streamlit UploadedFile or bytes.
+    Guarantees Biopython sees a true text-mode file.
     """
-    import io
-    from Bio import SeqIO
-
-    # If raw bytes, wrap in TextIOWrapper
-    if isinstance(handle, (bytes, bytearray)):
+    # Step 1: if UploadedFile or bytes, wrap in BytesIO → TextIOWrapper
+    if hasattr(handle, "read"):
+        # rewind first
+        handle.seek(0)
+        # get bytes
+        content_bytes = handle.read()
+        # wrap in proper text-mode
+        handle = io.TextIOWrapper(io.BytesIO(content_bytes), encoding="utf-8", errors="ignore")
+    elif isinstance(handle, (bytes, bytearray)):
         handle = io.TextIOWrapper(io.BytesIO(handle), encoding="utf-8", errors="ignore")
+    else:
+        # assume already text-mode
+        pass
 
-    # If UploadedFile or binary file-like
-    elif hasattr(handle, "read"):
-        # Attempt reading 0 bytes to check text mode
-        try:
-            handle.read(0)
-        except TypeError:
-            handle.seek(0)
-            handle = io.TextIOWrapper(io.BytesIO(handle.read()), encoding="utf-8", errors="ignore")
-
+    # Step 2: parse
     records = list(SeqIO.parse(handle, "fasta"))
 
+    # Step 3: build output
     results = []
     for r in records:
         results.append({
@@ -46,6 +46,7 @@ def parse_fasta(handle):
         })
 
     return results
+
 
 # ---------------------------------------------------------
 # GENBANK PARSER
