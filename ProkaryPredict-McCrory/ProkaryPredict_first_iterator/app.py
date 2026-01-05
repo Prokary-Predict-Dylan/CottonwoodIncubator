@@ -39,40 +39,41 @@ st.info("Upload a GenBank, FASTA, or SBML file. Parsed features will be converte
 # -----------------------------------------------------------
 if uploaded is not None:
     fn = uploaded.name.lower()
-    raw = uploaded.read()
-
-    # Decode ONCE, globally
-    text = raw.decode("utf-8", errors="ignore")
+    content = uploaded.read()
     feature_list = []
 
     try:
-        preview_text = text[:5000].lower()
+        preview_text = content[:5000].decode("utf-8", errors="ignore").lower()
 
         # ------------------------------
         # GenBank
         # ------------------------------
         if fn.endswith((".gb", ".gbk", ".genbank")):
-            feature_list = parse_genbank(io.StringIO(text))
+            feature_list = parse_genbank(
+                io.StringIO(content.decode("utf-8", errors="ignore"))
+            )
             st.success(f"Parsed GenBank: {len(feature_list)} features found")
 
         # ------------------------------
         # FASTA
         # ------------------------------
         elif fn.endswith((".fa", ".fasta")):
-            feature_list = parse_fasta(io.StringIO(text))
+            feature_list = parse_fasta(
+                io.StringIO(content.decode("utf-8", errors="ignore"))
+            )
             st.success(f"Parsed FASTA: {len(feature_list)} sequences")
 
         # ------------------------------
         # SBML
         # ------------------------------
         elif fn.endswith((".xml", ".sbml")) or "<sbml" in preview_text:
-            sbml_res = parse_sbml(io.BytesIO(raw))
+            sbml_res = parse_sbml(io.BytesIO(content))
             st.session_state["model"] = sbml_res["cobra_model"]
 
             for idx, g in enumerate(sbml_res["genes"]):
                 feature_list.append({
                     "id": g["id"],
-                    "name": g.get("name") or g.get("id"),
+                    "name": g.get("name") or g["id"],
                     "product": g.get("product", ""),
                     "auto_categories": sbml_res.get("auto_categories", {}),
                     "start": idx * 200,
@@ -85,22 +86,26 @@ if uploaded is not None:
             st.success(f"Parsed SBML: {len(feature_list)} genes")
 
         # ------------------------------
-        # Heuristic fallback
+        # Unknown → heuristics
         # ------------------------------
         else:
-            st.warning("Unknown extension; attempting FASTA → GenBank fallback")
             try:
                 feature_list = parse_fasta(
                     io.StringIO(content.decode("utf-8", errors="ignore"))
                 )
-
+                st.success(f"Parsed FASTA heuristically: {len(feature_list)} sequences")
             except Exception:
-                feature_list = parse_genbank(io.StringIO(text))
-                st.success(f"Parsed GenBank heuristically: {len(feature_list)} features")
+                try:
+                    feature_list = parse_genbank(
+                        io.StringIO(content.decode("utf-8", errors="ignore"))
+                    )
+                    st.success(f"Parsed GenBank heuristically: {len(feature_list)} features")
+                except Exception:
+                    st.error("Could not parse file.")
+                    feature_list = []
 
     except Exception as e:
         st.error(f"Parsing error: {e}")
-        feature_list = []
 
     # -----------------------------------------------------------
     # Block Conversion
