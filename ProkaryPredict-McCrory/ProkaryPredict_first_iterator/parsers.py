@@ -4,6 +4,9 @@ import cobra
 import re
 from collections import Counter
 
+# -------------------------
+# FASTA PARSER
+# -------------------------
 def parse_fasta(handle):
     """
     Robust FASTA parser for Streamlit uploads:
@@ -15,13 +18,13 @@ def parse_fasta(handle):
         handle.seek(0)
         content_bytes = handle.read()
         handle = io.TextIOWrapper(io.BytesIO(content_bytes), encoding="utf-8", errors="ignore")
-    
+
     # Case 2: raw bytes
     elif isinstance(handle, (bytes, bytearray)):
         handle = io.TextIOWrapper(io.BytesIO(handle), encoding="utf-8", errors="ignore")
-    
+
     # Case 3: already text-mode (do nothing)
-    
+
     # Parse FASTA
     records = list(SeqIO.parse(handle, "fasta"))
 
@@ -35,7 +38,7 @@ def parse_fasta(handle):
             "length": len(r.seq),
             "source": "fasta"
         })
-    
+
     return results
 
 # -------------------------
@@ -73,7 +76,6 @@ def parse_genbank(file_like):
                 })
     return results
 
-
 # -------------------------
 # SBML PARSER
 # -------------------------
@@ -105,7 +107,6 @@ def autogenerate_categories_from_model(model):
         for t in re.findall(r"[a-zA-Z0-9_]+", text):
             token_counts[t] += 1
     return categories
-
 
 def parse_sbml(file_like):
     """
